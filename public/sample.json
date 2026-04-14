@@ -1,0 +1,740 @@
+{
+  "transitStack": {
+    "schemaVersion": "3.1",
+    "exportDate": "2026-04-13",
+    "agencyName": "Cascade Basin Transit",
+    "canvas": {
+      "height": 1056,
+      "categoryWidths": {
+        "payment": 291,
+        "in_vehicle": 313,
+        "operations": 358,
+        "outreach_access": 335,
+        "planning_reporting": 335
+      },
+      "paperSize": "tabloid",
+      "paperSizeName": "11\u00d717 / Tabloid",
+      "width": 1632
+    },
+    "categories": [
+      {
+        "id": "payment",
+        "name": "Payment"
+      },
+      {
+        "id": "in_vehicle",
+        "name": "In-Vehicle"
+      },
+      {
+        "id": "operations",
+        "name": "Operations"
+      },
+      {
+        "id": "outreach_access",
+        "name": "Outreach & Access"
+      },
+      {
+        "id": "planning_reporting",
+        "name": "Planning & Reporting"
+      }
+    ],
+    "statusOptions": [
+      {
+        "id": "in_use",
+        "name": "In Use"
+      },
+      {
+        "id": "planned",
+        "name": "Planned"
+      },
+      {
+        "id": "needed",
+        "name": "Needed"
+      }
+    ],
+    "managementTypes": [
+      {
+        "id": "vendor",
+        "name": "Vendor-managed"
+      },
+      {
+        "id": "agency",
+        "name": "Agency-managed"
+      },
+      {
+        "id": "manual",
+        "name": "Manual"
+      }
+    ],
+    "vendors": [
+      {
+        "id": "v-genfare",
+        "name": "Genfare",
+        "x": 33.5,
+        "y": 64.5,
+        "width": 223.6,
+        "height": 117.3,
+        "description": "GFI Odyssey fareboxes. End of vendor support 2027.",
+        "attributes": {
+          "contractExpiry": "2027-06"
+        }
+      },
+      {
+        "id": "v-token",
+        "name": "Token Transit",
+        "x": 33.5,
+        "y": 211.2,
+        "width": 223.6,
+        "height": 117.3,
+        "description": "Mobile fare payment with visual validation.",
+        "attributes": {}
+      },
+      {
+        "id": "v-clever",
+        "name": "Clever Devices",
+        "x": 307.4,
+        "y": 64.5,
+        "width": 279.5,
+        "height": 258.1,
+        "description": "CAD/AVL and APC sensors.",
+        "attributes": {
+          "contractExpiry": "2028-12"
+        }
+      },
+      {
+        "id": "v-samsara",
+        "name": "Samsara",
+        "x": 307.4,
+        "y": 352.0,
+        "width": 279.5,
+        "height": 111.5,
+        "description": "Onboard video. Cloud footage retrieval.",
+        "attributes": {
+          "retention": "90 days"
+        }
+      },
+      {
+        "id": "v-trapeze",
+        "name": "Trapeze",
+        "x": 620.4,
+        "y": 64.5,
+        "width": 324.2,
+        "height": 117.3,
+        "description": "Trapeze FX for fixed-route scheduling.",
+        "attributes": {
+          "contractExpiry": "2029-03"
+        }
+      },
+      {
+        "id": "v-tripspark",
+        "name": "TripSpark",
+        "x": 620.4,
+        "y": 205.3,
+        "width": 324.2,
+        "height": 117.3,
+        "description": "NOVUS scheduling and dispatch for DR/paratransit.",
+        "attributes": {}
+      },
+      {
+        "id": "v-rtafleet",
+        "name": "RTA Fleet",
+        "x": 620.4,
+        "y": 346.1,
+        "width": 324.2,
+        "height": 111.5,
+        "description": "Vehicle maintenance, work orders, SGR compliance.",
+        "attributes": {}
+      },
+      {
+        "id": "v-swiftly",
+        "name": "Swiftly",
+        "x": 972.5,
+        "y": 64.5,
+        "width": 301.8,
+        "height": 134.9,
+        "description": "Real-time passenger information and analytics.",
+        "attributes": {
+          "estimatedLaunch": "2027-Q2"
+        }
+      },
+      {
+        "id": "v-ringcentral",
+        "name": "RingCentral",
+        "x": 972.5,
+        "y": 387.2,
+        "width": 301.8,
+        "height": 105.6,
+        "description": "VoIP phone system for rider calls and DR booking.",
+        "attributes": {}
+      },
+      {
+        "id": "v-trillium",
+        "name": "Trillium",
+        "x": 1307.8,
+        "y": 64.5,
+        "width": 301.8,
+        "height": 117.3,
+        "description": "GTFS static feed production and hosting.",
+        "attributes": {}
+      },
+      {
+        "id": "v-remix",
+        "name": "Remix (Via)",
+        "x": 1307.8,
+        "y": 416.5,
+        "width": 301.8,
+        "height": 111.5,
+        "description": "Service planning tool. Not yet procured.",
+        "attributes": {
+          "estimatedCost": "TBD"
+        }
+      }
+    ],
+    "systems": [
+      {
+        "id": "s-farebox",
+        "name": "Fareboxes",
+        "x": 55.9,
+        "y": 84.5,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": false,
+        "description": "GFI Odyssey. Cash and magnetic stripe only.",
+        "attributes": {
+          "unitCount": "14",
+          "fareMedia": "cash, magnetic stripe"
+        }
+      },
+      {
+        "id": "s-mobilepay",
+        "name": "Mobile Fare Payment",
+        "x": 55.9,
+        "y": 232.3,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": false,
+        "description": "Mobile app. Visual validation by driver.",
+        "attributes": {
+          "validationMethod": "visual"
+        }
+      },
+      {
+        "id": "s-cadavl",
+        "name": "CAD/AVL System",
+        "x": 329.8,
+        "y": 84.5,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": false,
+        "description": "CleverCAD. Driver MDTs on fixed route.",
+        "attributes": {
+          "hosting": "cloud"
+        }
+      },
+      {
+        "id": "s-apc",
+        "name": "Passenger Counters",
+        "x": 329.8,
+        "y": 176.0,
+        "width": 140,
+        "height": 52,
+        "status": "planned",
+        "agencyManaged": false,
+        "description": "CleverCount APC sensors. Installation pending.",
+        "attributes": {
+          "estimatedInstall": "2027-Q1"
+        }
+      },
+      {
+        "id": "s-radio",
+        "name": "Two-Way Radio",
+        "x": 329.8,
+        "y": 495.1,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": false,
+        "description": "MOTOTRBO digital radio.",
+        "attributes": {
+          "vendor": "Motorola"
+        }
+      },
+      {
+        "id": "s-cameras",
+        "name": "Onboard Video",
+        "x": 329.8,
+        "y": 375.5,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": false,
+        "description": "Interior/exterior cameras. No integration.",
+        "attributes": {}
+      },
+      {
+        "id": "s-frsched",
+        "name": "FR Scheduling",
+        "x": 642.7,
+        "y": 84.5,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": false,
+        "description": "Trapeze FX. Blocking, run-cutting, timetables.",
+        "attributes": {
+          "product": "Trapeze FX"
+        }
+      },
+      {
+        "id": "s-drdispatch",
+        "name": "DR Dispatch",
+        "x": 642.7,
+        "y": 226.5,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": false,
+        "description": "NOVUS for dial-a-ride and ADA paratransit.",
+        "attributes": {
+          "product": "NOVUS"
+        }
+      },
+      {
+        "id": "s-fleet",
+        "name": "Fleet Management",
+        "x": 642.7,
+        "y": 366.1,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": false,
+        "description": "Maintenance tracking, work orders, parts, SGR.",
+        "attributes": {}
+      },
+      {
+        "id": "s-driversched",
+        "name": "Driver Scheduling",
+        "x": 642.7,
+        "y": 492.8,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": true,
+        "description": "Spreadsheet-based bid and assignment. Error-prone.",
+        "attributes": {
+          "tool": "Google Sheets"
+        }
+      },
+      {
+        "id": "s-inspections",
+        "name": "Pre/Post-Trip Inspect.",
+        "x": 642.7,
+        "y": 586.7,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": true,
+        "description": "Paper forms. 24-48hr defect entry lag.",
+        "attributes": {
+          "medium": "paper"
+        }
+      },
+      {
+        "id": "s-rtpi",
+        "name": "Real-Time Info",
+        "x": 994.8,
+        "y": 84.5,
+        "width": 140,
+        "height": 52,
+        "status": "planned",
+        "agencyManaged": false,
+        "description": "Swiftly arrival predictions. Depends on GTFS-RT.",
+        "attributes": {}
+      },
+      {
+        "id": "s-website",
+        "name": "Public Website",
+        "x": 994.8,
+        "y": 225.3,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": true,
+        "description": "WordPress. Schedule PDFs, alerts. No real-time.",
+        "attributes": {
+          "platform": "WordPress"
+        }
+      },
+      {
+        "id": "s-social",
+        "name": "Social Media",
+        "x": 994.8,
+        "y": 314.5,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": true,
+        "description": "Facebook and Instagram. Manual alert posting.",
+        "attributes": {
+          "platforms": "Facebook, Instagram"
+        }
+      },
+      {
+        "id": "s-phone",
+        "name": "Phone / IVR",
+        "x": 994.8,
+        "y": 408.3,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": false,
+        "description": "VoIP for rider info and DR trip booking.",
+        "attributes": {}
+      },
+      {
+        "id": "s-gtfs",
+        "name": "GTFS Production",
+        "x": 1330.2,
+        "y": 84.5,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": false,
+        "description": "GTFS static feed from Trapeze exports.",
+        "attributes": {
+          "updateFrequency": "each signup"
+        }
+      },
+      {
+        "id": "s-ntd",
+        "name": "NTD Reporting",
+        "x": 1330.2,
+        "y": 222.9,
+        "width": 140,
+        "height": 52,
+        "status": "in_use",
+        "agencyManaged": true,
+        "description": "Manual compilation. ~120 staff hours/year.",
+        "attributes": {
+          "annualLOE": "~120 hrs"
+        }
+      },
+      {
+        "id": "s-analytics",
+        "name": "Run-Time Analytics",
+        "x": 1330.2,
+        "y": 326.2,
+        "width": 140,
+        "height": 52,
+        "status": "planned",
+        "agencyManaged": false,
+        "description": "Swiftly schedule adherence and reliability.",
+        "attributes": {}
+      },
+      {
+        "id": "s-planning",
+        "name": "Service Planning",
+        "x": 1330.2,
+        "y": 436.5,
+        "width": 140,
+        "height": 52,
+        "status": "needed",
+        "agencyManaged": false,
+        "description": "No dedicated tool. Remix identified as target.",
+        "attributes": {
+          "currentWorkaround": "QGIS + Sheets"
+        }
+      }
+    ],
+    "connections": [
+      {
+        "id": "c01",
+        "sourceSystemId": "s-cadavl",
+        "sourceSystemName": "CAD/AVL System",
+        "targetSystemId": "s-frsched",
+        "targetSystemName": "FR Scheduling",
+        "bidirectional": true,
+        "dataStandardized": true,
+        "managementType": "vendor",
+        "managementTypeName": "Vendor-managed",
+        "status": "in_use",
+        "statusName": "In Use",
+        "label": null,
+        "vendorName": null,
+        "description": "Real-time positions and schedule adherence.",
+        "attributes": {
+          "protocol": "vendor API"
+        }
+      },
+      {
+        "id": "c02",
+        "sourceSystemId": "s-cadavl",
+        "sourceSystemName": "CAD/AVL System",
+        "targetSystemId": "s-rtpi",
+        "targetSystemName": "Real-Time Info",
+        "bidirectional": false,
+        "dataStandardized": true,
+        "managementType": "vendor",
+        "managementTypeName": "Vendor-managed",
+        "status": "planned",
+        "statusName": "Planned",
+        "label": "GTFS-RT",
+        "vendorName": null,
+        "description": "Vehicle positions for arrival predictions.",
+        "attributes": {}
+      },
+      {
+        "id": "c03",
+        "sourceSystemId": "s-frsched",
+        "sourceSystemName": "FR Scheduling",
+        "targetSystemId": "s-gtfs",
+        "targetSystemName": "GTFS Production",
+        "bidirectional": false,
+        "dataStandardized": false,
+        "managementType": "manual",
+        "managementTypeName": "Manual",
+        "status": "in_use",
+        "statusName": "In Use",
+        "label": null,
+        "vendorName": null,
+        "description": "Trapeze export emailed to Trillium each signup.",
+        "attributes": {
+          "frequency": "3x/year",
+          "method": "email"
+        }
+      },
+      {
+        "id": "c04",
+        "sourceSystemId": "s-gtfs",
+        "sourceSystemName": "GTFS Production",
+        "targetSystemId": "s-analytics",
+        "targetSystemName": "Run-Time Analytics",
+        "bidirectional": false,
+        "dataStandardized": true,
+        "managementType": "vendor",
+        "managementTypeName": "Vendor-managed",
+        "status": "planned",
+        "statusName": "Planned",
+        "label": "GTFS",
+        "vendorName": null,
+        "description": "Static schedule baseline for adherence analysis.",
+        "attributes": {}
+      },
+      {
+        "id": "c05",
+        "sourceSystemId": "s-cadavl",
+        "sourceSystemName": "CAD/AVL System",
+        "targetSystemId": "s-analytics",
+        "targetSystemName": "Run-Time Analytics",
+        "bidirectional": false,
+        "dataStandardized": true,
+        "managementType": "vendor",
+        "managementTypeName": "Vendor-managed",
+        "status": "planned",
+        "statusName": "Planned",
+        "label": "GTFS-RT",
+        "vendorName": null,
+        "description": "Real-time positions for run-time computation.",
+        "attributes": {}
+      },
+      {
+        "id": "c06",
+        "sourceSystemId": "s-drdispatch",
+        "sourceSystemName": "DR Dispatch",
+        "targetSystemId": "s-ntd",
+        "targetSystemName": "NTD Reporting",
+        "bidirectional": false,
+        "dataStandardized": false,
+        "managementType": "manual",
+        "managementTypeName": "Manual",
+        "status": "in_use",
+        "statusName": "In Use",
+        "label": null,
+        "vendorName": null,
+        "description": "Monthly ridership and revenue-hours. CSV \u2192 manual.",
+        "attributes": {
+          "frequency": "monthly"
+        }
+      },
+      {
+        "id": "c07",
+        "sourceSystemId": "s-frsched",
+        "sourceSystemName": "FR Scheduling",
+        "targetSystemId": "s-ntd",
+        "targetSystemName": "NTD Reporting",
+        "bidirectional": false,
+        "dataStandardized": false,
+        "managementType": "manual",
+        "managementTypeName": "Manual",
+        "status": "in_use",
+        "statusName": "In Use",
+        "label": null,
+        "vendorName": null,
+        "description": "Revenue hours/miles manually extracted for NTD.",
+        "attributes": {}
+      },
+      {
+        "id": "c08",
+        "sourceSystemId": "s-frsched",
+        "sourceSystemName": "FR Scheduling",
+        "targetSystemId": "s-driversched",
+        "targetSystemName": "Driver Scheduling",
+        "bidirectional": false,
+        "dataStandardized": false,
+        "managementType": "manual",
+        "managementTypeName": "Manual",
+        "status": "in_use",
+        "statusName": "In Use",
+        "label": null,
+        "vendorName": null,
+        "description": "Run-cut output manually transcribed into bid sheet.",
+        "attributes": {
+          "painPoint": "transcription errors"
+        }
+      },
+      {
+        "id": "c09",
+        "sourceSystemId": "s-mobilepay",
+        "sourceSystemName": "Mobile Fare Payment",
+        "targetSystemId": "s-farebox",
+        "targetSystemName": "Fareboxes",
+        "bidirectional": false,
+        "dataStandardized": false,
+        "managementType": "manual",
+        "managementTypeName": "Manual",
+        "status": "needed",
+        "statusName": "Needed",
+        "label": null,
+        "vendorName": null,
+        "description": "No integration. Cannot reconcile fare revenue.",
+        "attributes": {}
+      },
+      {
+        "id": "c10",
+        "sourceSystemId": "s-cadavl",
+        "sourceSystemName": "CAD/AVL System",
+        "targetSystemId": "s-cameras",
+        "targetSystemName": "Onboard Video",
+        "bidirectional": false,
+        "dataStandardized": false,
+        "managementType": "manual",
+        "managementTypeName": "Manual",
+        "status": "needed",
+        "statusName": "Needed",
+        "label": null,
+        "vendorName": null,
+        "description": "No integration. Manual timestamp correlation.",
+        "attributes": {}
+      },
+      {
+        "id": "c11",
+        "sourceSystemId": "s-rtpi",
+        "sourceSystemName": "Real-Time Info",
+        "targetSystemId": "s-website",
+        "targetSystemName": "Public Website",
+        "bidirectional": false,
+        "dataStandardized": true,
+        "managementType": "agency",
+        "managementTypeName": "Agency-managed",
+        "status": "planned",
+        "statusName": "Planned",
+        "label": "Widget",
+        "vendorName": null,
+        "description": "Swiftly embeddable map widget for website.",
+        "attributes": {
+          "method": "JS embed"
+        }
+      },
+      {
+        "id": "c12",
+        "sourceSystemId": "s-drdispatch",
+        "sourceSystemName": "DR Dispatch",
+        "targetSystemId": "s-cadavl",
+        "targetSystemName": "CAD/AVL System",
+        "bidirectional": false,
+        "dataStandardized": false,
+        "managementType": "manual",
+        "managementTypeName": "Manual",
+        "status": "needed",
+        "statusName": "Needed",
+        "label": null,
+        "vendorName": null,
+        "description": "DR vehicles not visible in FR CAD/AVL.",
+        "attributes": {}
+      },
+      {
+        "id": "c13",
+        "sourceSystemId": "s-inspections",
+        "sourceSystemName": "Pre/Post-Trip Inspect.",
+        "targetSystemId": "s-fleet",
+        "targetSystemName": "Fleet Management",
+        "bidirectional": false,
+        "dataStandardized": false,
+        "managementType": "manual",
+        "managementTypeName": "Manual",
+        "status": "in_use",
+        "statusName": "In Use",
+        "label": null,
+        "vendorName": null,
+        "description": "Paper defects keyed into RTA Fleet. 24-48hr lag.",
+        "attributes": {}
+      },
+      {
+        "id": "c14",
+        "sourceSystemId": "s-apc",
+        "sourceSystemName": "Passenger Counters",
+        "targetSystemId": "s-analytics",
+        "targetSystemName": "Run-Time Analytics",
+        "bidirectional": false,
+        "dataStandardized": false,
+        "managementType": "vendor",
+        "managementTypeName": "Vendor-managed",
+        "status": "planned",
+        "statusName": "Planned",
+        "label": null,
+        "vendorName": null,
+        "description": "APC boarding/alighting data for ridership analysis.",
+        "attributes": {}
+      },
+      {
+        "id": "c15",
+        "sourceSystemId": "s-planning",
+        "sourceSystemName": "Service Planning",
+        "targetSystemId": "s-gtfs",
+        "targetSystemName": "GTFS Production",
+        "bidirectional": false,
+        "dataStandardized": true,
+        "managementType": "vendor",
+        "managementTypeName": "Vendor-managed",
+        "status": "needed",
+        "statusName": "Needed",
+        "label": "GTFS",
+        "vendorName": null,
+        "description": "Remix would consume GTFS for network analysis.",
+        "attributes": {}
+      },
+      {
+        "id": "c16",
+        "sourceSystemId": "s-drdispatch",
+        "sourceSystemName": "DR Dispatch",
+        "targetSystemId": "s-phone",
+        "targetSystemName": "Phone / IVR",
+        "bidirectional": true,
+        "dataStandardized": false,
+        "managementType": "agency",
+        "managementTypeName": "Agency-managed",
+        "status": "in_use",
+        "statusName": "In Use",
+        "label": null,
+        "vendorName": "Lumen",
+        "description": "Staff take booking calls and enter into NOVUS.",
+        "attributes": {}
+      }
+    ],
+    "docVersion": "1.0",
+    "docDate": "2026-04-13"
+  }
+}
