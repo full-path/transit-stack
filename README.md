@@ -27,7 +27,7 @@ Output goes to `dist/`. Serve it from any static hosting (GitHub Pages, Netlify,
 
 ## What It Does
 
-Transit agencies use a variety of software systems for scheduling, dispatch, fare collection, passenger information, reporting, and planning. These systems are provided by different vendors and connected (or not connected) by data flows of varying quality. A "Transit Stack" diagram maps this landscape.
+Transit agencies use a variety of software systems for scheduling, dispatch, fare collection, passenger information, reporting, and planning. These systems are provided by different vendors and connected (or not connected) by data flows of varying quality. A "Transit Stack" diagram maps this landscape. The goal is for this tool to support transit agencies, particularly small ones, to be able to share a common language to describe and share their transit-specific technology infrastructure.
 
 This tool lets a transit planner:
 
