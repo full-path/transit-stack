@@ -1,6 +1,6 @@
 # Transit Stack
 
-A drag-and-drop diagram editor for inventorying transit agency technology systems, vendors, and data flows. Produces structured JSON exports suitable for analysis by humans, spreadsheets, or large language models.
+A vibe-coded drag-and-drop diagram editor for inventorying transit agency technology systems, vendors, and data flows. Produces structured JSON exports suitable for analysis by humans, spreadsheets, or large language models.
 
 **No server required.** Transit Stack runs entirely in the browser. State is saved to `localStorage`. Export and import use JSON files.
 
@@ -106,6 +106,10 @@ No server-side code. No database. No authentication. No external API calls.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Credits
+
+The transit stack term and concept was first developed by the team at [Trillium Solutions](https://trilliumtransit.com/2016/10/10/transit-stack-diagram/). Subsequent iterations developed were developed by [Full Path](https://fullpath.io) with funding by the [Oregon Department of Transportation Public Transit Division](https://www.oregon.gov/odot/rptd/pages/index.aspx).
 
 ## Contributing
 
