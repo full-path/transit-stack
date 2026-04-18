@@ -51,11 +51,15 @@ export default function PropsPanel({
     </div>
   );
 
+  // Note: this wrapper is a <div>, not a <label>, on purpose. Wrapping a
+  // native <select> inside a <label> causes the browser to forward a
+  // synthetic click from the label back to the control, which dismisses
+  // the dropdown menu the instant it opens.
   const Label = ({ label, children }) => (
-    <label className="block mb-2">
+    <div className="block mb-2">
       <span className="font-semibold text-gray-600 block mb-0.5">{label}</span>
       {children}
-    </label>
+    </div>
   );
 
   // ── System ──

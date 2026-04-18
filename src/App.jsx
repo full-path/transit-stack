@@ -340,16 +340,31 @@ export default function App() {
   const onMouseUp = useCallback(
     (e) => {
       const inter = interRef.current;
+      if (inter.mode === "idle") return; // Don't do anything on simple clicks
+
       if (inter.mode === "connecting") {
         const pt = svgCoords(e);
         const tgt = systems.find(
-          (s) => s.id !== inter.sourceId && pt.x >= s.x && pt.x <= s.x + s.width && pt.y >= s.y && pt.y <= s.y + s.height
+          (s) =>
+            s.id !== inter.sourceId &&
+            pt.x >= s.x &&
+            pt.x <= s.x + s.width &&
+            pt.y >= s.y &&
+            pt.y <= s.y + s.height
         );
         if (tgt) {
           const c = {
-            id: uid(), sourceId: inter.sourceId, targetId: tgt.id,
-            bidirectional: false, dataStandardized: true, managementType: "vendor",
-            status: "in_use", label: "", vendorName: "", description: "", attributes: {},
+            id: uid(),
+            sourceId: inter.sourceId,
+            targetId: tgt.id,
+            bidirectional: false,
+            dataStandardized: true,
+            managementType: "vendor",
+            status: "in_use",
+            label: "",
+            vendorName: "",
+            description: "",
+            attributes: {},
           };
           setConnections((p) => [...p, c]);
           setSel({ type: "connection", id: c.id });
