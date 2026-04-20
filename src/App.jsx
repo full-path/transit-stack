@@ -30,8 +30,11 @@ import {
   SYS_RX,
   SYS_BORDER,
   FONT_SIZE,
+  PT_TO_PX,
   VENDOR_STYLE,
   CONN_THICKNESS,
+  CONN_LABEL_STYLE,
+  CONN_VENDOR_STYLE,
   PORT_COLOR,
   CANVAS_BG,
   FONT_FAMILY,
@@ -141,6 +144,16 @@ export default function App() {
       save({ agencyName, docVersion, docDate, paperSize, colWidths, vendors, systems, connections });
     }
   }, [agencyName, docVersion, docDate, paperSize, colWidths, vendors, systems, connections, loaded]);
+
+  useEffect(() => {
+    let el = document.getElementById("transit-stack-page-style");
+    if (!el) {
+      el = document.createElement("style");
+      el.id = "transit-stack-page-style";
+      document.head.appendChild(el);
+    }
+    el.textContent = `@page { size: ${paper.printSize}; margin: 0.5in; } @media print { svg { width: ${paper.printW}in !important; height: ${paper.printH}in !important; } }`;
+  }, [paper.printSize]);
 
   // ── SVG coordinate helper ──
   const svgCoords = useCallback(
@@ -433,10 +446,18 @@ export default function App() {
 
   const inter = interRef.current;
 
+  // Derived connection annotation dimensions (font-size-aware)
+  const labelFontPx  = FONT_SIZE.connectionLabel  * PT_TO_PX;
+  const labelBoxH    = labelFontPx * CONN_LABEL_STYLE.lineHeight;
+  const labelCharW   = labelFontPx * CONN_LABEL_STYLE.charWidthRatio;
+  const vendorFontPx = FONT_SIZE.connectionVendor * PT_TO_PX;
+  const vendorBoxH   = vendorFontPx * CONN_VENDOR_STYLE.lineHeight;
+  const vendorCharW  = vendorFontPx * CONN_VENDOR_STYLE.charWidthRatio;
+
   return (
     <div className="flex flex-col h-screen bg-gray-100">
       {/* ── TOOLBAR ── */}
-      <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3 flex-wrap">
+      <div className="print:hidden bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3 flex-wrap">
         <span className="font-bold text-sm text-gray-800 mr-1">Transit Stack</span>
         <input
           className="border-b border-gray-300 bg-transparent px-1 py-0.5 text-xs focus:outline-none focus:border-gray-600 text-gray-700 w-36 placeholder-gray-300"
@@ -479,7 +500,7 @@ export default function App() {
 
       {/* ── SETTINGS BAR ── */}
       {showSettings && (
-        <div className="bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center gap-4 flex-wrap text-xs">
+        <div className="print:hidden bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center gap-4 flex-wrap text-xs">
           <label className="flex items-center gap-1 font-medium text-gray-600">
             Paper:
             <select
@@ -534,7 +555,7 @@ export default function App() {
                 <g key={cat.id}>
                   <rect x={x0} y={HEADER_H} width={w} height={canvasH - HEADER_H} fill={cat.bg} />
                   <rect x={x0} y={0} width={w} height={HEADER_H} fill={cat.hdr} />
-                  <text x={x0 + w / 2} y={HEADER_H / 2} textAnchor="middle" dominantBaseline="central" fontSize={FONT_SIZE.categoryHeader} fontWeight="700" fill="#fff" letterSpacing="0.4">
+                  <text x={x0 + w / 2} y={HEADER_H / 2} textAnchor="middle" dominantBaseline="central" fontSize={FONT_SIZE.categoryHeader * PT_TO_PX} fontWeight="700" fill="#fff" letterSpacing="0.4">
                     {cat.name.toUpperCase()}
                   </text>
                   {i < CATEGORIES.length - 1 && (
@@ -554,7 +575,7 @@ export default function App() {
               return (
                 <g key={v.id}>
                   <rect data-role="vendor" data-id={v.id} x={v.x} y={v.y} width={v.width} height={v.height} rx={VENDOR_STYLE.rx} fill={VENDOR_STYLE.fill} stroke={isSel ? VENDOR_STYLE.strokeSelected : VENDOR_STYLE.stroke} strokeWidth={isSel ? VENDOR_STYLE.strokeWidthSelected : VENDOR_STYLE.strokeWidth} style={{ cursor: "move" }} />
-                  <text x={v.x + 8} y={v.y + 14} fontSize={FONT_SIZE.vendorLabel} fontWeight="600" fill="#555" style={{ pointerEvents: "none" }}>{v.name}</text>
+                  <text x={v.x + 8} y={v.y + 14} fontSize={FONT_SIZE.vendorLabel * PT_TO_PX} fontWeight="600" fill="#555" style={{ pointerEvents: "none" }}>{v.name}</text>
                   {isSel &&
                     ["tl", "tr", "bl", "br"].map((corner) => {
                       const hx = corner.includes("l") ? v.x : v.x + v.width;
@@ -581,11 +602,11 @@ export default function App() {
               return (
                 <g key={s.id} onMouseEnter={() => setHoveredSys(s.id)} onMouseLeave={() => setHoveredSys(null)}>
                   <rect data-role="system" data-id={s.id} x={s.x} y={s.y} width={s.width} height={s.height} rx={SYS_RX} fill={st.fill} stroke={bCol} strokeWidth={bW} style={{ cursor: "move" }} />
-                  <text x={s.x + s.width / 2} y={s.y + s.height / 2 - (hasDesc ? 5 : 0)} textAnchor="middle" dominantBaseline="central" fontSize={FONT_SIZE.systemName} fontWeight="700" fill="#1a1a1a" style={{ pointerEvents: "none" }}>
+                  <text x={s.x + s.width / 2} y={s.y + s.height / 2 - (hasDesc ? 5 : 0)} textAnchor="middle" dominantBaseline="central" fontSize={FONT_SIZE.systemName * PT_TO_PX} fontWeight="700" fill="#1a1a1a" style={{ pointerEvents: "none" }}>
                     {s.name.length > 20 ? s.name.slice(0, 19) + "…" : s.name}
                   </text>
                   {hasDesc && (
-                    <text x={s.x + s.width / 2} y={s.y + s.height / 2 + 9} textAnchor="middle" dominantBaseline="central" fontSize={FONT_SIZE.systemDesc} fill="#555" style={{ pointerEvents: "none" }}>
+                    <text x={s.x + s.width / 2} y={s.y + s.height / 2 + 9} textAnchor="middle" dominantBaseline="central" fontSize={FONT_SIZE.systemDesc * PT_TO_PX} fill="#555" style={{ pointerEvents: "none" }}>
                       {s.description.length > 24 ? s.description.slice(0, 23) + "…" : s.description}
                     </text>
                   )}
@@ -647,20 +668,25 @@ export default function App() {
                 <g key={c.id}>
                   <path d={d} fill="none" stroke="transparent" strokeWidth={12} data-role="connection" data-id={c.id} style={{ cursor: "pointer" }} />
                   <path d={d} fill="none" stroke={isSel ? "#111" : st.connColor} strokeWidth={thick} strokeDasharray={mgmt.dash} opacity={isSel ? 1 : 0.75} markerEnd={`url(#a-${c.status})`} markerStart={c.bidirectional ? `url(#ar-${c.status})` : undefined} style={{ pointerEvents: "none" }} />
-                  {c.label && (
-                    <g style={{ pointerEvents: "none" }}>
-                      <rect x={qx - c.label.length * 3 - 4} y={qy - 8} width={c.label.length * 6 + 8} height={16} rx={3} fill="white" stroke={st.connColor} strokeWidth={0.75} opacity={0.95} />
-                      <text x={qx} y={qy} textAnchor="middle" dominantBaseline="central" fontSize="9" fontWeight="600" fill={st.connColor}>{c.label}</text>
-                    </g>
-                  )}
-                  {c.vendorName && (
-                    <g style={{ pointerEvents: "none" }}>
-                      <rect x={q25x - 30} y={q25y - 7} width={60} height={14} rx={3} fill="white" stroke={st.connColor} strokeWidth={0.5} strokeDasharray="3,2" opacity={0.9} />
-                      <text x={q25x} y={q25y} textAnchor="middle" dominantBaseline="central" fontSize="7.5" fill="#777" fontStyle="italic">
-                        via {c.vendorName.length > 9 ? c.vendorName.slice(0, 8) + "…" : c.vendorName}
-                      </text>
-                    </g>
-                  )}
+                  {c.label && (() => {
+                    const bw = c.label.length * labelCharW + CONN_LABEL_STYLE.paddingH * 2;
+                    return (
+                      <g style={{ pointerEvents: "none" }}>
+                        <rect x={qx - bw / 2} y={qy - labelBoxH / 2} width={bw} height={labelBoxH} rx={CONN_LABEL_STYLE.rx} fill="white" stroke={st.connColor} strokeWidth={CONN_LABEL_STYLE.strokeWidth} opacity={CONN_LABEL_STYLE.opacity} />
+                        <text x={qx} y={qy} textAnchor="middle" dominantBaseline="central" fontSize={labelFontPx} fontWeight={CONN_LABEL_STYLE.fontWeight} fill={st.connColor}>{c.label}</text>
+                      </g>
+                    );
+                  })()}
+                  {c.vendorName && (() => {
+                    const name = c.vendorName.length > CONN_VENDOR_STYLE.maxChars ? c.vendorName.slice(0, CONN_VENDOR_STYLE.maxChars - 1) + "…" : c.vendorName;
+                    const vw = ("via " + name).length * vendorCharW + CONN_VENDOR_STYLE.paddingH * 2;
+                    return (
+                      <g style={{ pointerEvents: "none" }}>
+                        <rect x={q25x - vw / 2} y={q25y - vendorBoxH / 2} width={vw} height={vendorBoxH} rx={CONN_VENDOR_STYLE.rx} fill="white" stroke={st.connColor} strokeWidth={CONN_VENDOR_STYLE.strokeWidth} strokeDasharray={CONN_VENDOR_STYLE.strokeDash} opacity={CONN_VENDOR_STYLE.opacity} />
+                        <text x={q25x} y={q25y} textAnchor="middle" dominantBaseline="central" fontSize={vendorFontPx} fill={CONN_VENDOR_STYLE.fill} fontStyle={CONN_VENDOR_STYLE.fontStyle}>via {name}</text>
+                      </g>
+                    );
+                  })()}
                 </g>
               );
             })}
@@ -679,7 +705,7 @@ export default function App() {
             <Legend canvasW={canvasW} canvasH={canvasH} />
 
             {agencyName && (
-              <text x={canvasW - 10} y={HEADER_H + 16} textAnchor="end" fontSize={FONT_SIZE.watermark} fill="#999" style={{ pointerEvents: "none" }}>
+              <text x={canvasW - 10} y={HEADER_H + 16} textAnchor="end" fontSize={FONT_SIZE.watermark * PT_TO_PX} fill="#999" style={{ pointerEvents: "none" }}>
                 {agencyName} — v{docVersion} — {docDate}
               </text>
             )}
@@ -687,16 +713,18 @@ export default function App() {
         </div>
 
         {/* ── Properties Panel ── */}
-        <PropsPanel
-          sel={sel}
-          systems={enrichedSystems}
-          vendors={vendors}
-          connections={connections}
-          setSystems={setSystems}
-          setVendors={setVendors}
-          setConnections={setConnections}
-          onDeselect={() => setSel(null)}
-        />
+        <div className="print:hidden">
+          <PropsPanel
+            sel={sel}
+            systems={enrichedSystems}
+            vendors={vendors}
+            connections={connections}
+            setSystems={setSystems}
+            setVendors={setVendors}
+            setConnections={setConnections}
+            onDeselect={() => setSel(null)}
+          />
+        </div>
       </div>
     </div>
   );

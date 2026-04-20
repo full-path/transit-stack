@@ -59,14 +59,14 @@ export default function Legend({ canvasW, canvasH }) {
           Standard
         </text>
       </g>
-      <g transform={`translate(140, ${ly + 24})`}>
+      <g transform={`translate(160, ${ly + 24})`}>
         <line x1={0} y1={0} x2={25} y2={0} stroke="#666" strokeWidth={CONN_THICKNESS.nonStandard} />
         <text x={30} y={1} fontSize="12" fill="#555" dominantBaseline="central">
           Non-standard
         </text>
       </g>
       {Object.entries(MGMT).map(([k, v], i) => (
-        <g key={k} transform={`translate(${250 + i * 130}, ${ly + 24})`}>
+        <g key={k} transform={`translate(${290 + i * 150}, ${ly + 24})`}>
           <line x1={0} y1={0} x2={25} y2={0}
             stroke="#666" strokeWidth={2} strokeDasharray={v.dash || "none"} />
           <text x={30} y={1} fontSize="12" fill="#555" dominantBaseline="central">

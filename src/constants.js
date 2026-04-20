@@ -43,14 +43,21 @@ export const MGMT = {
 
 /**
  * Paper sizes for the canvas. All landscape orientation, 96 DPI.
- * Width and height are in CSS pixels, which map 1:1 to SVG user units.
+ *
+ * w/h are the PRINTABLE area in CSS px (page dimensions minus 0.5in margins on
+ * each side). 1 SVG user unit = 1 CSS px = 1/96 inch, so font sizes follow the
+ * standard web convention: 16px = 12pt, 13px ≈ 10pt, etc.
+ *
+ * printSize / printW / printH are used to set the @page rule and explicit SVG
+ * dimensions at print time so the coordinate mapping holds exactly.
  */
 export const PAPER_SIZES = {
-  letter: { name: 'Letter (11×8.5″)', w: 1056, h: 816 },
-  legal: { name: 'Legal (14×8.5″)', w: 1344, h: 816 },
-  tabloid: { name: "11×17 / Tabloid", w: 1632, h: 1056 },
-  a4: { name: "A4 Landscape", w: 1123, h: 794 },
-  a3: { name: "A3 Landscape", w: 1588, h: 1123 },
+  //               page dims          − 1in per axis at 96 dpi         printable inches
+  letter:  { name: 'Letter (11×8.5″)', w:  960, h: 720,  printSize: "letter landscape",  printW: 10,     printH: 7.5    },
+  legal:   { name: 'Legal (14×8.5″)',  w: 1248, h: 720,  printSize: "legal landscape",   printW: 13,     printH: 7.5    },
+  tabloid: { name: "11×17 / Tabloid",  w: 1536, h: 960,  printSize: "tabloid landscape", printW: 16,     printH: 10     },
+  a4:      { name: "A4 Landscape",     w: 1026, h: 698,  printSize: "A4 landscape",      printW: 10.693, printH: 7.268  },
+  a3:      { name: "A3 Landscape",     w: 1491, h: 1027, printSize: "A3 landscape",      printW: 15.535, printH: 10.693 },
 };
 
 export const DEFAULT_PAPER = "letter";
@@ -75,6 +82,31 @@ export const VENDOR_STYLE = {
 /** Connection stroke widths. Standardized data uses a thicker line. */
 export const CONN_THICKNESS = { standard: 3.5, nonStandard: 1.5 };
 
+/** Visual style for the label badge rendered at the midpoint of a connection. */
+export const CONN_LABEL_STYLE = {
+  fontWeight:     "600",
+  lineHeight:     1.6,   // box height = fontSize_px × lineHeight
+  charWidthRatio: 0.6,   // box width  = charCount × (fontSize_px × charWidthRatio) + paddingH×2
+  paddingH:       4,     // horizontal padding, each side (px)
+  rx:             3,
+  strokeWidth:    0.75,
+  opacity:        0.95,
+};
+
+/** Visual style for the "via VendorName" annotation rendered near connection source. */
+export const CONN_VENDOR_STYLE = {
+  fill:           "#777",
+  fontStyle:      "italic",
+  lineHeight:     1.6,
+  charWidthRatio: 0.55,
+  paddingH:       4,
+  maxChars:       9,     // truncation limit for vendor name display
+  rx:             3,
+  strokeWidth:    0.5,
+  strokeDash:     "3,2",
+  opacity:        0.9,
+};
+
 /** Color used for interactive port circles and the rubber-band connector line. */
 export const PORT_COLOR = "#4a86e8";
 
@@ -87,13 +119,18 @@ export const FONT_FAMILY = "'DM Sans', system-ui, sans-serif";
 /** Corner radii for canvas shapes. */
 export const SYS_RX = 6;
 
-/** Font sizes for canvas text (SVG px units). */
+/** Multiply pt values by this to get SVG px units (96 px/in ÷ 72 pt/in). */
+export const PT_TO_PX = 96 / 72;
+
+/** Font sizes in pt. Apply PT_TO_PX when used as SVG fontSize attributes. */
 export const FONT_SIZE = {
-  categoryHeader: 14,
-  vendorLabel:    10,
-  systemName:     10,
-  systemDesc:     7.5,
-  watermark:      7,
+  categoryHeader:    12,
+  vendorLabel:       12,
+  systemName:        12,
+  systemDesc:        11,
+  watermark:         10,
+  connectionLabel:   10,
+  connectionVendor:  10,
 };
 
 /** Layout constants used by both the canvas and the interaction handlers. */

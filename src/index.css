@@ -6,3 +6,11 @@ body {
   font-family: "DM Sans", system-ui, sans-serif;
   margin: 0;
 }
+
+@media print {
+  /* Preserve SVG fill colors and backgrounds exactly as on screen. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
