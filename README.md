@@ -32,10 +32,12 @@ Transit agencies use a variety of software systems for scheduling, dispatch, far
 This tool lets a transit planner:
 
 1. **Place vendor and system widgets** on a canvas organized into five fixed category columns: Payment, In-Vehicle, Operations, Outreach & Access, and Planning & Reporting.
-2. **Draw connections** between systems by dragging from one system's port to another.
-3. **Set attributes** on each element via a properties panel (status, description, management type, data standardization, etc.).
-4. **Export** the diagram as JSON (for data analysis) or SVG (for printing and sharing).
-5. **Import** a previously exported JSON file to restore the exact layout.
+2. **Resize vendors and systems** by dragging their corner handles when selected.
+3. **Draw connections** between systems by dragging from one system's port to another.
+4. **Set attributes** on each element via a properties panel (status, description, management type, data standardization, etc.).
+5. **Export** the diagram as JSON (for data analysis) or SVG (for sharing).
+6. **Print** directly from the browser (Cmd+P / Ctrl+P). The toolbar hides automatically and the page size and orientation match the canvas paper setting.
+7. **Import** a previously exported JSON file to restore the exact layout.
 
 Relationships are derived from spatial placement:
 - A system's **category** is determined by which column its center falls in.
