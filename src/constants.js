@@ -77,6 +77,8 @@ export const VENDOR_STYLE = {
   strokeSelected: "#333",
   strokeWidthSelected: 2,
   rx: 10,
+  labelPaddingX:   8,  // px from left edge to label text
+  labelPaddingTop: 4,  // px above font cap-height (added to fontSize_px for baseline y)
 };
 
 /** Connection stroke widths. Standardized data uses a thicker line. */
@@ -134,7 +136,7 @@ export const FONT_SIZE = {
 };
 
 /** Layout constants used by both the canvas and the interaction handlers. */
-export const HEADER_H = 36;
+export const HEADER_H = 45;
 export const MIN_COL_W = 100;
 export const SYS_W = 140;
 export const SYS_H = 52;

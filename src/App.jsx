@@ -52,6 +52,29 @@ import PropsPanel from "./components/PropsPanel";
 import Legend from "./components/Legend";
 import { btnPrimary, btnSecondary } from "./components/shared";
 
+/**
+ * Greedy word-wrap for SVG text. Returns an array of lines that each fit
+ * within maxWidth, using an estimated character width of fontPx * 0.7
+ * (intentionally generous to account for uppercase glyphs and emoji).
+ */
+function wrapText(text, maxWidth, fontPx) {
+  const charW = fontPx * 0.7;
+  const words = text.split(" ");
+  const lines = [];
+  let cur = "";
+  for (const word of words) {
+    const test = cur ? cur + " " + word : word;
+    if (cur && test.length * charW > maxWidth) {
+      lines.push(cur);
+      cur = word;
+    } else {
+      cur = test;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
 export default function App() {
   // ── State ──
   const [loaded, setLoaded] = useState(false);
@@ -269,8 +292,14 @@ export default function App() {
       if (role === "resize") {
         e.stopPropagation();
         const corner = target.getAttribute("data-corner");
-        const v = vendors.find((x) => x.id === eid);
-        if (v) interRef.current = { mode: "resizing", id: eid, corner, origRect: { ...v }, startPt: pt };
+        const rtype = target.getAttribute("data-type");
+        if (rtype === "system") {
+          const s = systems.find((x) => x.id === eid);
+          if (s) interRef.current = { mode: "resizing", rtype, id: eid, corner, origRect: { ...s }, startPt: pt };
+        } else {
+          const v = vendors.find((x) => x.id === eid);
+          if (v) interRef.current = { mode: "resizing", rtype, id: eid, corner, origRect: { ...v }, startPt: pt };
+        }
         return;
       }
       if (role === "system") {
@@ -325,20 +354,22 @@ export default function App() {
           )
         );
       } else if (inter.mode === "resizing") {
-        const { id, corner, origRect, startPt } = inter;
+        const { id, corner, origRect, startPt, rtype } = inter;
         const dx = pt.x - startPt.x;
         const dy = pt.y - startPt.y;
-        setVendors((vs) =>
-          vs.map((v) => {
-            if (v.id !== id) return v;
-            let { x, y, width, height } = origRect;
-            if (corner.includes("r")) width = Math.max(80, width + dx);
-            if (corner.includes("l")) { x += dx; width = Math.max(80, width - dx); }
-            if (corner.includes("b")) height = Math.max(60, height + dy);
-            if (corner.includes("t")) { y = Math.max(HEADER_H, y + dy); height = Math.max(60, height - dy); }
-            return { ...v, x, y, width, height };
-          })
-        );
+        const applyResize = (rect, minW, minH) => {
+          let { x, y, width, height } = rect;
+          if (corner.includes("r")) width = Math.max(minW, width + dx);
+          if (corner.includes("l")) { x += dx; width = Math.max(minW, width - dx); }
+          if (corner.includes("b")) height = Math.max(minH, height + dy);
+          if (corner.includes("t")) { y = Math.max(HEADER_H, y + dy); height = Math.max(minH, height - dy); }
+          return { x, y, width, height };
+        };
+        if (rtype === "system") {
+          setSystems((ss) => ss.map((s) => s.id !== id ? s : { ...s, ...applyResize(origRect, 60, 30) }));
+        } else {
+          setVendors((vs) => vs.map((v) => v.id !== id ? v : { ...v, ...applyResize(origRect, 80, 60) }));
+        }
       } else if (inter.mode === "connecting") {
         inter.currentPt = pt;
         setInterRender((r) => r + 1);
@@ -555,9 +586,19 @@ export default function App() {
                 <g key={cat.id}>
                   <rect x={x0} y={HEADER_H} width={w} height={canvasH - HEADER_H} fill={cat.bg} />
                   <rect x={x0} y={0} width={w} height={HEADER_H} fill={cat.hdr} />
-                  <text x={x0 + w / 2} y={HEADER_H / 2} textAnchor="middle" dominantBaseline="central" fontSize={FONT_SIZE.categoryHeader * PT_TO_PX} fontWeight="700" fill="#fff" letterSpacing="0.4">
-                    {cat.name.toUpperCase()}
-                  </text>
+                  {(() => {
+                    const fontPx = FONT_SIZE.categoryHeader * PT_TO_PX;
+                    const lineH = fontPx * 1.1;
+                    const lines = wrapText(cat.name.toUpperCase(), w - 8, fontPx);
+                    const startY = HEADER_H / 2 - (lines.length - 1) * lineH / 2;
+                    return (
+                      <text x={x0 + w / 2} textAnchor="middle" dominantBaseline="central" fontSize={fontPx} fontWeight="700" fill="#fff" letterSpacing="0.4">
+                        {lines.map((line, li) => (
+                          <tspan key={li} x={x0 + w / 2} y={startY + li * lineH}>{line}</tspan>
+                        ))}
+                      </text>
+                    );
+                  })()}
                   {i < CATEGORIES.length - 1 && (
                     <rect data-role="col-resize" data-ci={i} x={x0 + w - 4} y={0} width={8} height={canvasH} fill="transparent" style={{ cursor: "col-resize" }} />
                   )}
@@ -575,13 +616,13 @@ export default function App() {
               return (
                 <g key={v.id}>
                   <rect data-role="vendor" data-id={v.id} x={v.x} y={v.y} width={v.width} height={v.height} rx={VENDOR_STYLE.rx} fill={VENDOR_STYLE.fill} stroke={isSel ? VENDOR_STYLE.strokeSelected : VENDOR_STYLE.stroke} strokeWidth={isSel ? VENDOR_STYLE.strokeWidthSelected : VENDOR_STYLE.strokeWidth} style={{ cursor: "move" }} />
-                  <text x={v.x + 8} y={v.y + 14} fontSize={FONT_SIZE.vendorLabel * PT_TO_PX} fontWeight="600" fill="#555" style={{ pointerEvents: "none" }}>{v.name}</text>
+                  <text x={v.x + VENDOR_STYLE.labelPaddingX} y={v.y + FONT_SIZE.vendorLabel * PT_TO_PX + VENDOR_STYLE.labelPaddingTop} fontSize={FONT_SIZE.vendorLabel * PT_TO_PX} fontWeight="600" fill="#555" style={{ pointerEvents: "none" }}>{v.name}</text>
                   {isSel &&
                     ["tl", "tr", "bl", "br"].map((corner) => {
                       const hx = corner.includes("l") ? v.x : v.x + v.width;
                       const hy = corner.includes("t") ? v.y : v.y + v.height;
                       return (
-                        <rect key={corner} data-role="resize" data-id={v.id} data-corner={corner} x={hx - 5} y={hy - 5} width={10} height={10} rx={2} fill="white" stroke="#333" strokeWidth={1.5} style={{ cursor: corner === "tl" || corner === "br" ? "nwse-resize" : "nesw-resize" }} />
+                        <rect key={corner} data-role="resize" data-type="vendor" data-id={v.id} data-corner={corner} x={hx - 5} y={hy - 5} width={10} height={10} rx={2} fill="white" stroke="#333" strokeWidth={1.5} style={{ cursor: corner === "tl" || corner === "br" ? "nwse-resize" : "nesw-resize" }} />
                       );
                     })}
                 </g>
@@ -614,6 +655,14 @@ export default function App() {
                     portPositions(s).map((p) => (
                       <circle key={p.side} data-role="port" data-id={s.id} cx={p.x} cy={p.y} r={5} fill="white" stroke={PORT_COLOR} strokeWidth={2} style={{ cursor: "crosshair" }} />
                     ))}
+                  {isSel &&
+                    ["tl", "tr", "bl", "br"].map((corner) => {
+                      const hx = corner.includes("l") ? s.x : s.x + s.width;
+                      const hy = corner.includes("t") ? s.y : s.y + s.height;
+                      return (
+                        <rect key={corner} data-role="resize" data-type="system" data-id={s.id} data-corner={corner} x={hx - 5} y={hy - 5} width={10} height={10} rx={2} fill="white" stroke="#333" strokeWidth={1.5} style={{ cursor: corner === "tl" || corner === "br" ? "nwse-resize" : "nesw-resize" }} />
+                      );
+                    })}
                 </g>
               );
             })}
