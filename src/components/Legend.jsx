@@ -4,8 +4,7 @@
  * line thickness, and dash patterns.
  */
 
-import React from "react";
-import { STATUS, MGMT } from "../constants";
+import { STATUS, MGMT, SYS_BORDER, CONN_THICKNESS } from "../constants";
 
 export default function Legend({ canvasW, canvasH }) {
   const ly = canvasH - 58;
@@ -37,14 +36,14 @@ export default function Legend({ canvasW, canvasH }) {
       </text>
       <g transform={`translate(400, ${ly})`}>
         <rect x={0} y={-4} width={14} height={14} rx={3}
-          fill="#eee" stroke="#d32f2f" strokeWidth={2.5} />
+          fill="#eee" stroke={SYS_BORDER.agency.stroke} strokeWidth={2.5} />
         <text x={18} y={4} fontSize="12" fill="#555" dominantBaseline="central">
           Agency-managed
         </text>
       </g>
       <g transform={`translate(530, ${ly})`}>
         <rect x={0} y={-4} width={14} height={14} rx={3}
-          fill="#eee" stroke="#c9a800" strokeWidth={2.5} />
+          fill="#eee" stroke={SYS_BORDER.unspecified.stroke} strokeWidth={2.5} />
         <text x={18} y={4} fontSize="12" fill="#555" dominantBaseline="central">
           Unspecified management
         </text>
@@ -55,13 +54,13 @@ export default function Legend({ canvasW, canvasH }) {
         LINES:
       </text>
       <g transform={`translate(58, ${ly + 24})`}>
-        <line x1={0} y1={0} x2={25} y2={0} stroke="#666" strokeWidth={3.5} />
+        <line x1={0} y1={0} x2={25} y2={0} stroke="#666" strokeWidth={CONN_THICKNESS.standard} />
         <text x={30} y={1} fontSize="12" fill="#555" dominantBaseline="central">
           Standard
         </text>
       </g>
       <g transform={`translate(140, ${ly + 24})`}>
-        <line x1={0} y1={0} x2={25} y2={0} stroke="#666" strokeWidth={1.5} />
+        <line x1={0} y1={0} x2={25} y2={0} stroke="#666" strokeWidth={CONN_THICKNESS.nonStandard} />
         <text x={30} y={1} fontSize="12" fill="#555" dominantBaseline="central">
           Non-standard
         </text>

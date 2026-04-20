@@ -55,6 +55,47 @@ export const PAPER_SIZES = {
 
 export const DEFAULT_PAPER = "letter";
 
+/** Visual border style for systems, keyed by management state. */
+export const SYS_BORDER = {
+  agency:      { stroke: "#d32f2f", strokeWidth: 3 },
+  unspecified: { stroke: "#c9a800", strokeWidth: 3 },
+  vendor:      { stroke: "#aaa",    strokeWidth: 1.5 },
+};
+
+/** Visual style for vendor boxes. */
+export const VENDOR_STYLE = {
+  fill: "#e8e8e8",
+  stroke: "#bbb",
+  strokeWidth: 1.5,
+  strokeSelected: "#333",
+  strokeWidthSelected: 2,
+  rx: 10,
+};
+
+/** Connection stroke widths. Standardized data uses a thicker line. */
+export const CONN_THICKNESS = { standard: 3.5, nonStandard: 1.5 };
+
+/** Color used for interactive port circles and the rubber-band connector line. */
+export const PORT_COLOR = "#4a86e8";
+
+/** SVG canvas background fill. */
+export const CANVAS_BG = "#fdfdfd";
+
+/** Font stack for all SVG text on the canvas. */
+export const FONT_FAMILY = "'DM Sans', system-ui, sans-serif";
+
+/** Corner radii for canvas shapes. */
+export const SYS_RX = 6;
+
+/** Font sizes for canvas text (SVG px units). */
+export const FONT_SIZE = {
+  categoryHeader: 14,
+  vendorLabel:    10,
+  systemName:     10,
+  systemDesc:     7.5,
+  watermark:      7,
+};
+
 /** Layout constants used by both the canvas and the interaction handlers. */
 export const HEADER_H = 36;
 export const MIN_COL_W = 100;

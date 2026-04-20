@@ -27,6 +27,14 @@ import {
   MIN_COL_W,
   SYS_W,
   SYS_H,
+  SYS_RX,
+  SYS_BORDER,
+  FONT_SIZE,
+  VENDOR_STYLE,
+  CONN_THICKNESS,
+  PORT_COLOR,
+  CANVAS_BG,
+  FONT_FAMILY,
   defaultColWidths,
 } from "./constants";
 import { edgePt, rectContains, portPositions } from "./utils/geometry";
@@ -512,11 +520,11 @@ export default function App() {
             viewBox={`0 0 ${canvasW} ${canvasH}`}
             preserveAspectRatio="xMidYMid meet"
             xmlns="http://www.w3.org/2000/svg"
-            style={{ fontFamily: "'DM Sans', system-ui, sans-serif", display: "block", maxWidth: canvasW }}
+            style={{ fontFamily: FONT_FAMILY, display: "block", maxWidth: canvasW }}
             onMouseDown={onMouseDown}
             onMouseMove={onMouseMove}
           >
-            <rect x={0} y={0} width={canvasW} height={canvasH} fill="#fdfdfd" />
+            <rect x={0} y={0} width={canvasW} height={canvasH} fill={CANVAS_BG} />
 
             {/* Category columns */}
             {CATEGORIES.map((cat, i) => {
@@ -526,7 +534,7 @@ export default function App() {
                 <g key={cat.id}>
                   <rect x={x0} y={HEADER_H} width={w} height={canvasH - HEADER_H} fill={cat.bg} />
                   <rect x={x0} y={0} width={w} height={HEADER_H} fill={cat.hdr} />
-                  <text x={x0 + w / 2} y={HEADER_H / 2} textAnchor="middle" dominantBaseline="central" fontSize="14" fontWeight="700" fill="#fff" letterSpacing="0.4">
+                  <text x={x0 + w / 2} y={HEADER_H / 2} textAnchor="middle" dominantBaseline="central" fontSize={FONT_SIZE.categoryHeader} fontWeight="700" fill="#fff" letterSpacing="0.4">
                     {cat.name.toUpperCase()}
                   </text>
                   {i < CATEGORIES.length - 1 && (
@@ -545,8 +553,8 @@ export default function App() {
               const isSel = sel?.type === "vendor" && sel.id === v.id;
               return (
                 <g key={v.id}>
-                  <rect data-role="vendor" data-id={v.id} x={v.x} y={v.y} width={v.width} height={v.height} rx={10} fill="#e8e8e8" stroke={isSel ? "#333" : "#bbb"} strokeWidth={isSel ? 2 : 1.5} style={{ cursor: "move" }} />
-                  <text x={v.x + 8} y={v.y + 14} fontSize="10" fontWeight="600" fill="#555" style={{ pointerEvents: "none" }}>{v.name}</text>
+                  <rect data-role="vendor" data-id={v.id} x={v.x} y={v.y} width={v.width} height={v.height} rx={VENDOR_STYLE.rx} fill={VENDOR_STYLE.fill} stroke={isSel ? VENDOR_STYLE.strokeSelected : VENDOR_STYLE.stroke} strokeWidth={isSel ? VENDOR_STYLE.strokeWidthSelected : VENDOR_STYLE.strokeWidth} style={{ cursor: "move" }} />
+                  <text x={v.x + 8} y={v.y + 14} fontSize={FONT_SIZE.vendorLabel} fontWeight="600" fill="#555" style={{ pointerEvents: "none" }}>{v.name}</text>
                   {isSel &&
                     ["tl", "tr", "bl", "br"].map((corner) => {
                       const hx = corner.includes("l") ? v.x : v.x + v.width;
@@ -566,25 +574,24 @@ export default function App() {
               const isHov = hoveredSys === s.id;
               const hasDesc = s.description && s.description.trim().length > 0;
 
-              let bCol = "#aaa", bW = 1.5;
-              if (s.agencyManaged) { bCol = "#d32f2f"; bW = 3; }
-              else if (!s._vendorId) { bCol = "#c9a800"; bW = 3; }
-              if (isSel) { bCol = "#111"; bW = 3; }
+              const bStyle = s.agencyManaged ? SYS_BORDER.agency : !s._vendorId ? SYS_BORDER.unspecified : SYS_BORDER.vendor;
+              let bCol = isSel ? "#111" : bStyle.stroke;
+              let bW = isSel ? 3 : bStyle.strokeWidth;
 
               return (
                 <g key={s.id} onMouseEnter={() => setHoveredSys(s.id)} onMouseLeave={() => setHoveredSys(null)}>
-                  <rect data-role="system" data-id={s.id} x={s.x} y={s.y} width={s.width} height={s.height} rx={6} fill={st.fill} stroke={bCol} strokeWidth={bW} style={{ cursor: "move" }} />
-                  <text x={s.x + s.width / 2} y={s.y + s.height / 2 - (hasDesc ? 5 : 0)} textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="700" fill="#1a1a1a" style={{ pointerEvents: "none" }}>
+                  <rect data-role="system" data-id={s.id} x={s.x} y={s.y} width={s.width} height={s.height} rx={SYS_RX} fill={st.fill} stroke={bCol} strokeWidth={bW} style={{ cursor: "move" }} />
+                  <text x={s.x + s.width / 2} y={s.y + s.height / 2 - (hasDesc ? 5 : 0)} textAnchor="middle" dominantBaseline="central" fontSize={FONT_SIZE.systemName} fontWeight="700" fill="#1a1a1a" style={{ pointerEvents: "none" }}>
                     {s.name.length > 20 ? s.name.slice(0, 19) + "…" : s.name}
                   </text>
                   {hasDesc && (
-                    <text x={s.x + s.width / 2} y={s.y + s.height / 2 + 9} textAnchor="middle" dominantBaseline="central" fontSize="7.5" fill="#555" style={{ pointerEvents: "none" }}>
+                    <text x={s.x + s.width / 2} y={s.y + s.height / 2 + 9} textAnchor="middle" dominantBaseline="central" fontSize={FONT_SIZE.systemDesc} fill="#555" style={{ pointerEvents: "none" }}>
                       {s.description.length > 24 ? s.description.slice(0, 23) + "…" : s.description}
                     </text>
                   )}
                   {(isHov || isSel) &&
                     portPositions(s).map((p) => (
-                      <circle key={p.side} data-role="port" data-id={s.id} cx={p.x} cy={p.y} r={5} fill="white" stroke="#4a86e8" strokeWidth={2} style={{ cursor: "crosshair" }} />
+                      <circle key={p.side} data-role="port" data-id={s.id} cx={p.x} cy={p.y} r={5} fill="white" stroke={PORT_COLOR} strokeWidth={2} style={{ cursor: "crosshair" }} />
                     ))}
                 </g>
               );
@@ -612,7 +619,7 @@ export default function App() {
 
               const st = STATUS[c.status] || STATUS.in_use;
               const mgmt = MGMT[c.managementType] || MGMT.vendor;
-              const thick = c.dataStandardized ? 3.5 : 1.5;
+              const thick = c.dataStandardized ? CONN_THICKNESS.standard : CONN_THICKNESS.nonStandard;
               const isSel = sel?.type === "connection" && sel.id === c.id;
 
               const srcC = { x: src.x + src.width / 2, y: src.y + src.height / 2 };
@@ -665,14 +672,14 @@ export default function App() {
                 if (!src) return null;
                 const p1 = edgePt(src, inter.currentPt.x, inter.currentPt.y);
                 return (
-                  <line x1={p1.x} y1={p1.y} x2={inter.currentPt.x} y2={inter.currentPt.y} stroke="#4a86e8" strokeWidth={2} strokeDasharray="6,3" opacity={0.7} style={{ pointerEvents: "none" }} />
+                  <line x1={p1.x} y1={p1.y} x2={inter.currentPt.x} y2={inter.currentPt.y} stroke={PORT_COLOR} strokeWidth={2} strokeDasharray="6,3" opacity={0.7} style={{ pointerEvents: "none" }} />
                 );
               })()}
 
             <Legend canvasW={canvasW} canvasH={canvasH} />
 
             {agencyName && (
-              <text x={canvasW - 10} y={HEADER_H + 16} textAnchor="end" fontSize="7" fill="#999" style={{ pointerEvents: "none" }}>
+              <text x={canvasW - 10} y={HEADER_H + 16} textAnchor="end" fontSize={FONT_SIZE.watermark} fill="#999" style={{ pointerEvents: "none" }}>
                 {agencyName} — v{docVersion} — {docDate}
               </text>
             )}
