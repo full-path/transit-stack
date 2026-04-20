@@ -22,6 +22,7 @@ import {
   SYS_W,
   SYS_H,
   defaultColWidths,
+  normalizeColWidths,
 } from "../constants";
 
 /**
@@ -153,12 +154,12 @@ export function parseImport(parsed) {
 
   const paper = PAPER_SIZES[paperSize];
 
-  const colWidths = ts.canvas?.categoryWidths
-    ? CAT_IDS.map(
-        (id, i) =>
-          ts.canvas.categoryWidths[id] || defaultColWidths(paper.w)[i]
-      )
-    : defaultColWidths(paper.w);
+  const colWidths = normalizeColWidths(
+    ts.canvas?.categoryWidths
+      ? CAT_IDS.map((id, i) => ts.canvas.categoryWidths[id] || defaultColWidths(paper.w)[i])
+      : defaultColWidths(paper.w),
+    paper.w
+  );
 
   const vendors = (ts.vendors || []).map((v) => ({
     id: v.id || uid(),

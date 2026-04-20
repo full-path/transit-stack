@@ -149,3 +149,17 @@ export function defaultColWidths(totalW) {
   const ratios = [0.20, 0.20, 0.20, 0.20, 0.20];
   return ratios.map((r) => Math.round(totalW * r));
 }
+
+/**
+ * Scale widths proportionally so they sum to totalW, then nudge the last
+ * column to absorb any rounding error. Each column is guaranteed ≥ MIN_COL_W.
+ */
+export function normalizeColWidths(widths, totalW) {
+  const sum = widths.reduce((a, b) => a + b, 0);
+  if (sum === totalW) return widths;
+  const scale = totalW / sum;
+  const nw = widths.map((w) => Math.max(MIN_COL_W, Math.round(w * scale)));
+  const diff = totalW - nw.reduce((a, b) => a + b, 0);
+  nw[nw.length - 1] = Math.max(MIN_COL_W, nw[nw.length - 1] + diff);
+  return nw;
+}

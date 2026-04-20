@@ -39,6 +39,7 @@ import {
   CANVAS_BG,
   FONT_FAMILY,
   defaultColWidths,
+  normalizeColWidths,
 } from "./constants";
 import { edgePt, rectContains, portPositions } from "./utils/geometry";
 import { load, save } from "./utils/storage";
@@ -149,11 +150,12 @@ export default function App() {
       setDocVersion(saved.docVersion || "1.0");
       setDocDate(saved.docDate || new Date().toISOString().slice(0, 10));
       setPaperSize(saved.paperSize || DEFAULT_PAPER);
+      const loadedPaper = PAPER_SIZES[saved.paperSize || DEFAULT_PAPER] || PAPER_SIZES[DEFAULT_PAPER];
       setColWidths(
-        saved.colWidths ||
-          defaultColWidths(
-            (PAPER_SIZES[saved.paperSize || DEFAULT_PAPER] || PAPER_SIZES[DEFAULT_PAPER]).w
-          )
+        normalizeColWidths(
+          saved.colWidths || defaultColWidths(loadedPaper.w),
+          loadedPaper.w
+        )
       );
       setVendors(saved.vendors || []);
       setSystems(saved.systems || []);
@@ -229,12 +231,13 @@ export default function App() {
   // ── Column width adjustment (zero-sum: steals from last column) ──
   const adjustColWidth = useCallback((ci, newW) => {
     setColWidths((prev) => {
-      const clamped = Math.max(MIN_COL_W, Math.round(newW));
+      const comp = ci === prev.length - 1 ? ci - 1 : prev.length - 1;
+      const maxW = prev.reduce((a, b) => a + b, 0) - (prev.length - 1) * MIN_COL_W;
+      const clamped = Math.max(MIN_COL_W, Math.min(Math.round(newW), maxW));
       const delta = clamped - prev[ci];
       const nw = [...prev];
       nw[ci] = clamped;
-      const comp = ci === nw.length - 1 ? ci - 1 : nw.length - 1;
-      nw[comp] = Math.max(MIN_COL_W, nw[comp] - delta);
+      nw[comp] = nw[comp] - delta; // guaranteed ≥ MIN_COL_W by maxW clamp above
       return nw;
     });
   }, []);
@@ -376,8 +379,8 @@ export default function App() {
       } else if (inter.mode === "col-resize") {
         const dx = pt.x - inter.startX;
         const ci = inter.ci;
-        const nL = Math.max(MIN_COL_W, inter.origWidths[ci] + dx);
-        const nR = Math.max(MIN_COL_W, inter.origWidths[ci + 1] - dx);
+        const nL = inter.origWidths[ci] + dx;
+        const nR = inter.origWidths[ci + 1] - dx;
         if (nL >= MIN_COL_W && nR >= MIN_COL_W) {
           const nw = [...inter.origWidths];
           nw[ci] = Math.round(nL);
