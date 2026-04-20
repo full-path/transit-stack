@@ -526,7 +526,7 @@ export default function App() {
                 <g key={cat.id}>
                   <rect x={x0} y={HEADER_H} width={w} height={canvasH - HEADER_H} fill={cat.bg} />
                   <rect x={x0} y={0} width={w} height={HEADER_H} fill={cat.hdr} />
-                  <text x={x0 + w / 2} y={HEADER_H / 2} textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="700" fill="#fff" letterSpacing="0.4">
+                  <text x={x0 + w / 2} y={HEADER_H / 2} textAnchor="middle" dominantBaseline="central" fontSize="14" fontWeight="700" fill="#fff" letterSpacing="0.4">
                     {cat.name.toUpperCase()}
                   </text>
                   {i < CATEGORIES.length - 1 && (

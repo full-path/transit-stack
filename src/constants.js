@@ -10,11 +10,11 @@
  */
 
 export const CATEGORIES = [
-  { id: "payment", name: "Payment", bg: "#fce5cd44", hdr: "#be7d43" },
-  { id: "in_vehicle", name: "In-Vehicle", bg: "#d9ead344", hdr: "#6aa84f" },
-  { id: "operations", name: "Operations", bg: "#cfe2f344", hdr: "#4a86e8" },
-  { id: "outreach_access", name: "Outreach & Access", bg: "#f4cccc44", hdr: "#e06666" },
-  { id: "planning_reporting", name: "Planning & Reporting", bg: "#d9d2e944", hdr: "#7c3aed" },
+  { id: "payment", name: "💳 Payment", bg: "#fce5cd44", hdr: "#be7d43" },
+  { id: "in_vehicle", name: "🚌 In-Vehicle", bg: "#d9ead344", hdr: "#6aa84f" },
+  { id: "operations", name: "⚙️ Operations", bg: "#cfe2f344", hdr: "#4a86e8" },
+  { id: "outreach_access", name: "📣 Outreach & Access", bg: "#f4cccc44", hdr: "#e06666" },
+  { id: "planning_reporting", name: "📊 Planning & Reporting", bg: "#d9d2e944", hdr: "#7c3aed" },
 ];
 
 export const CAT_IDS = CATEGORIES.map((c) => c.id);
@@ -66,6 +66,6 @@ export const SYS_H = 52;
  * roughly in proportion to typical content density per category.
  */
 export function defaultColWidths(totalW) {
-  const ratios = [0.17, 0.19, 0.22, 0.21, 0.21];
+  const ratios = [0.20, 0.20, 0.20, 0.20, 0.20];
   return ratios.map((r) => Math.round(totalW * r));
 }
