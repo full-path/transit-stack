@@ -494,21 +494,24 @@ export default function App() {
       <div className="print:hidden bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3 flex-wrap">
         <span className="font-bold text-sm text-gray-800 mr-1">Transit Stack</span>
         <input
+          id="field-agency-name"
           className="border-b border-gray-300 bg-transparent px-1 py-0.5 text-xs focus:outline-none focus:border-gray-600 text-gray-700 w-36 placeholder-gray-300"
           placeholder="Agency name…"
           value={agencyName}
           onChange={(e) => setAgencyName(e.target.value)}
         />
         <div className="w-px h-5 bg-gray-300 mx-1" />
-        <label className="flex items-center gap-1 text-xs text-gray-500">
+        <label htmlFor="field-doc-version" className="flex items-center gap-1 text-xs text-gray-500">
           v
           <input
+            id="field-doc-version"
             className="border-b border-gray-300 bg-transparent px-0.5 py-0.5 text-xs w-10 focus:outline-none text-gray-700"
             value={docVersion}
             onChange={(e) => setDocVersion(e.target.value)}
           />
         </label>
         <input
+          id="field-doc-date"
           type="date"
           className="border-b border-gray-300 bg-transparent px-0.5 py-0.5 text-xs focus:outline-none text-gray-700"
           value={docDate}
@@ -535,9 +538,10 @@ export default function App() {
       {/* ── SETTINGS BAR ── */}
       {showSettings && (
         <div className="print:hidden bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center gap-4 flex-wrap text-xs">
-          <label className="flex items-center gap-1 font-medium text-gray-600">
+          <label htmlFor="field-paper-size" className="flex items-center gap-1 font-medium text-gray-600">
             Paper:
             <select
+              id="field-paper-size"
               className="border border-gray-300 rounded px-1.5 py-0.5 text-xs bg-white"
               value={paperSize}
               onChange={(e) => changePaperSize(e.target.value)}
@@ -550,10 +554,11 @@ export default function App() {
           <span className="text-gray-400">|</span>
           <span className="text-gray-500 font-medium">Column widths:</span>
           {CATEGORIES.map((cat, i) => (
-            <label key={cat.id} className="flex items-center gap-1">
+            <label key={cat.id} htmlFor={`field-col-width-${cat.id}`} className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-sm" style={{ background: cat.hdr }} />
               <span className="text-gray-500">{cat.name.split(" ")[0]}:</span>
               <input
+                id={`field-col-width-${cat.id}`}
                 type="number"
                 className="border border-gray-300 rounded px-1 py-0.5 w-14 text-xs"
                 value={colWidths[i]}
