@@ -89,6 +89,7 @@ export default function PropsPanel({
   if (type === "system") {
     const s = editedItem;
     if (!s) return null;
+    const liveSystem = systems.find((sys) => sys.id === id);
     return (
       <div className={panelClass}>
         <Header label="System" onDeselect={onDeselect} />
@@ -152,15 +153,15 @@ export default function PropsPanel({
           <p>
             Category:{" "}
             <span className="text-gray-600">
-              {s._category
-                ? CATEGORIES.find((c) => c.id === s._category)?.name
+              {liveSystem?._category
+                ? CATEGORIES.find((c) => c.id === liveSystem._category)?.name
                 : "—"}
             </span>
           </p>
           <p>
             Vendor:{" "}
             <span className="text-gray-600">
-              {s._vendorName || (s.agencyManaged ? "Agency" : "Unspecified")}
+              {liveSystem?._vendorName || (s.agencyManaged ? "Agency" : "Unspecified")}
             </span>
           </p>
         </div>

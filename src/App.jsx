@@ -651,14 +651,32 @@ export default function App() {
               return (
                 <g key={s.id} onMouseEnter={() => setHoveredSys(s.id)} onMouseLeave={() => setHoveredSys(null)}>
                   <rect data-role="system" data-id={s.id} x={s.x} y={s.y} width={s.width} height={s.height} rx={SYS_RX} fill={st.fill} stroke={bCol} strokeWidth={bW} style={{ cursor: "move" }} />
-                  <text x={s.x + s.width / 2} y={s.y + s.height / 2 - (hasDesc ? 5 : 0)} textAnchor="middle" dominantBaseline="central" fontSize={FONT_SIZE.systemName * PT_TO_PX} fontWeight="700" fill="#1a1a1a" style={{ pointerEvents: "none" }}>
-                    {s.name.length > 20 ? s.name.slice(0, 19) + "…" : s.name}
-                  </text>
-                  {hasDesc && (
-                    <text x={s.x + s.width / 2} y={s.y + s.height / 2 + 9} textAnchor="middle" dominantBaseline="central" fontSize={FONT_SIZE.systemDesc * PT_TO_PX} fill="#555" style={{ pointerEvents: "none" }}>
-                      {s.description.length > 24 ? s.description.slice(0, 23) + "…" : s.description}
-                    </text>
-                  )}
+                  {(() => {
+                    const nameFontPx = FONT_SIZE.systemName * PT_TO_PX;
+                    const descFontPx = FONT_SIZE.systemDesc * PT_TO_PX;
+                    const descLineH  = descFontPx * 1.2;
+                    const gap        = 3;
+                    const descLines  = hasDesc ? wrapText(s.description, s.width - 16, descFontPx) : [];
+                    const descBlockH = descLines.length > 0 ? gap + descLines.length * descLineH : 0;
+                    const blockH     = nameFontPx + descBlockH;
+                    const blockTopY  = s.y + s.height / 2 - blockH / 2;
+                    const nameCY     = blockTopY + nameFontPx / 2;
+                    const descTopY   = blockTopY + nameFontPx + gap + descLineH / 2;
+                    return (
+                      <>
+                        <text x={s.x + s.width / 2} y={nameCY} textAnchor="middle" dominantBaseline="central" fontSize={nameFontPx} fontWeight="700" fill="#1a1a1a" style={{ pointerEvents: "none" }}>
+                          {s.name.length > 20 ? s.name.slice(0, 19) + "…" : s.name}
+                        </text>
+                        {descLines.length > 0 && (
+                          <text x={s.x + s.width / 2} textAnchor="middle" dominantBaseline="central" fontSize={descFontPx} fill="#555" style={{ pointerEvents: "none" }}>
+                            {descLines.map((line, li) => (
+                              <tspan key={li} x={s.x + s.width / 2} y={descTopY + li * descLineH}>{line}</tspan>
+                            ))}
+                          </text>
+                        )}
+                      </>
+                    );
+                  })()}
                   {(isHov || isSel) &&
                     portPositions(s).map((p) => (
                       <circle key={p.side} data-role="port" data-id={s.id} cx={p.x} cy={p.y} r={5} fill="white" stroke={PORT_COLOR} strokeWidth={2} style={{ cursor: "crosshair" }} />
