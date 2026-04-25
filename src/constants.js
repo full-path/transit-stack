@@ -10,11 +10,11 @@
  */
 
 export const CATEGORIES = [
-  { id: "payment",           label: "💳 Payment",             name: "Payment",             bg: "#fce5cd44", hdr: "#be7d43" },
-  { id: "in_vehicle",        label: "🚌 In-Vehicle",          name: "In-Vehicle",          bg: "#d9ead344", hdr: "#6aa84f" },
-  { id: "operations",        label: "⚙️ Operations",          name: "Operations",          bg: "#cfe2f344", hdr: "#4a86e8" },
-  { id: "outreach_access",   label: "📣 Outreach & Access",   name: "Outreach & Access",   bg: "#f4cccc44", hdr: "#e06666" },
-  { id: "planning_reporting",label: "📊 Planning & Reporting",name: "Planning & Reporting",bg: "#d9d2e944", hdr: "#7c3aed" },
+  { id: "payment", label: "💳 Payment", name: "Payment", bg: "#fce5cd44", hdr: "#be7d43" },
+  { id: "in_vehicle", label: "🚌 In-Vehicle", name: "In-Vehicle", bg: "#d9ead344", hdr: "#6aa84f" },
+  { id: "operations", label: "⚙️ Operations", name: "Operations", bg: "#cfe2f344", hdr: "#4a86e8" },
+  { id: "outreach_access", label: "📣 Outreach & Access", name: "Outreach & Access", bg: "#f4cccc44", hdr: "#e06666" },
+  { id: "planning_reporting", label: "📊 Planning & Reporting", name: "Planning & Reporting", bg: "#d9d2e944", hdr: "#7c3aed" },
 ];
 
 export const CAT_IDS = CATEGORIES.map((c) => c.id);
@@ -53,20 +53,20 @@ export const MGMT = {
  */
 export const PAPER_SIZES = {
   //               page dims          − 1in per axis at 96 dpi         printable inches
-  letter:  { name: 'Letter (11×8.5″)', w:  960, h: 720,  printSize: "letter landscape",  printW: 10,     printH: 7.5    },
-  legal:   { name: 'Legal (14×8.5″)',  w: 1248, h: 720,  printSize: "legal landscape",   printW: 13,     printH: 7.5    },
-  tabloid: { name: "11×17 / Tabloid",  w: 1536, h: 960,  printSize: "tabloid landscape", printW: 16,     printH: 10     },
-  a4:      { name: "A4 Landscape",     w: 1026, h: 698,  printSize: "A4 landscape",      printW: 10.693, printH: 7.268  },
-  a3:      { name: "A3 Landscape",     w: 1491, h: 1027, printSize: "A3 landscape",      printW: 15.535, printH: 10.693 },
+  letter: { name: 'Letter (11×8.5″)', w: 960, h: 720, printSize: "letter landscape", printW: 10, printH: 7.5 },
+  legal: { name: 'Legal (14×8.5″)', w: 1248, h: 720, printSize: "legal landscape", printW: 13, printH: 7.5 },
+  tabloid: { name: "11×17 / Tabloid", w: 1536, h: 960, printSize: "tabloid landscape", printW: 16, printH: 10 },
+  a4: { name: "A4 Landscape", w: 1026, h: 698, printSize: "A4 landscape", printW: 10.693, printH: 7.268 },
+  a3: { name: "A3 Landscape", w: 1491, h: 1027, printSize: "A3 landscape", printW: 15.535, printH: 10.693 },
 };
 
 export const DEFAULT_PAPER = "letter";
 
 /** Visual border style for systems, keyed by management state. */
 export const SYS_BORDER = {
-  agency:      { stroke: "#d32f2f", strokeWidth: 3 },
-  unspecified: { stroke: "#c9a800", strokeWidth: 3 },
-  vendor:      { stroke: "#aaa",    strokeWidth: 1.5 },
+  agency: { stroke: "red", strokeWidth: 5 },
+  unspecified: { stroke: "yellow", strokeWidth: 5 },
+  vendor: { stroke: "#aaa", strokeWidth: 1.5 },
 };
 
 /** Visual style for vendor boxes. */
@@ -77,7 +77,7 @@ export const VENDOR_STYLE = {
   strokeSelected: "#333",
   strokeWidthSelected: 2,
   rx: 10,
-  labelPaddingX:   8,  // px from left edge to label text
+  labelPaddingX: 8,  // px from left edge to label text
   labelPaddingTop: 4,  // px above font cap-height (added to fontSize_px for baseline y)
 };
 
@@ -86,27 +86,27 @@ export const CONN_THICKNESS = { standard: 3.5, nonStandard: 1.5 };
 
 /** Visual style for the label badge rendered at the midpoint of a connection. */
 export const CONN_LABEL_STYLE = {
-  fontWeight:     "600",
-  lineHeight:     1.6,   // box height = fontSize_px × lineHeight
+  fontWeight: "600",
+  lineHeight: 1.6,   // box height = fontSize_px × lineHeight
   charWidthRatio: 0.6,   // box width  = charCount × (fontSize_px × charWidthRatio) + paddingH×2
-  paddingH:       4,     // horizontal padding, each side (px)
-  rx:             3,
-  strokeWidth:    0.75,
-  opacity:        0.95,
+  paddingH: 4,     // horizontal padding, each side (px)
+  rx: 3,
+  strokeWidth: 0.75,
+  opacity: 0.95,
 };
 
 /** Visual style for the "via VendorName" annotation rendered near connection source. */
 export const CONN_VENDOR_STYLE = {
-  fill:           "#777",
-  fontStyle:      "italic",
-  lineHeight:     1.6,
+  fill: "#777",
+  fontStyle: "italic",
+  lineHeight: 1.6,
   charWidthRatio: 0.55,
-  paddingH:       4,
-  maxChars:       9,     // truncation limit for vendor name display
-  rx:             3,
-  strokeWidth:    0.5,
-  strokeDash:     "3,2",
-  opacity:        0.9,
+  paddingH: 4,
+  maxChars: 9,     // truncation limit for vendor name display
+  rx: 3,
+  strokeWidth: 0.5,
+  strokeDash: "3,2",
+  opacity: 0.9,
 };
 
 /** Color used for interactive port circles and the rubber-band connector line. */
@@ -126,13 +126,13 @@ export const PT_TO_PX = 96 / 72;
 
 /** Font sizes in pt. Apply PT_TO_PX when used as SVG fontSize attributes. */
 export const FONT_SIZE = {
-  categoryHeader:    12,
-  vendorLabel:       12,
-  systemName:        12,
-  systemDesc:        11,
-  watermark:         10,
-  connectionLabel:   10,
-  connectionVendor:  10,
+  categoryHeader: 12,
+  vendorLabel: 12,
+  systemName: 12,
+  systemDesc: 11,
+  watermark: 10,
+  connectionLabel: 10,
+  connectionVendor: 10,
 };
 
 /** Layout constants used by both the canvas and the interaction handlers. */
