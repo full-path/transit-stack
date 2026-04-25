@@ -10,11 +10,11 @@
  */
 
 export const CATEGORIES = [
-  { id: "payment", name: "💳 Payment", bg: "#fce5cd44", hdr: "#be7d43" },
-  { id: "in_vehicle", name: "🚌 In-Vehicle", bg: "#d9ead344", hdr: "#6aa84f" },
-  { id: "operations", name: "⚙️ Operations", bg: "#cfe2f344", hdr: "#4a86e8" },
-  { id: "outreach_access", name: "📣 Outreach & Access", bg: "#f4cccc44", hdr: "#e06666" },
-  { id: "planning_reporting", name: "📊 Planning & Reporting", bg: "#d9d2e944", hdr: "#7c3aed" },
+  { id: "payment",           label: "💳 Payment",             name: "Payment",             bg: "#fce5cd44", hdr: "#be7d43" },
+  { id: "in_vehicle",        label: "🚌 In-Vehicle",          name: "In-Vehicle",          bg: "#d9ead344", hdr: "#6aa84f" },
+  { id: "operations",        label: "⚙️ Operations",          name: "Operations",          bg: "#cfe2f344", hdr: "#4a86e8" },
+  { id: "outreach_access",   label: "📣 Outreach & Access",   name: "Outreach & Access",   bg: "#f4cccc44", hdr: "#e06666" },
+  { id: "planning_reporting",label: "📊 Planning & Reporting",name: "Planning & Reporting",bg: "#d9d2e944", hdr: "#7c3aed" },
 ];
 
 export const CAT_IDS = CATEGORIES.map((c) => c.id);

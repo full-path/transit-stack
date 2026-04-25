@@ -97,7 +97,7 @@ export default function App() {
 
   // Interaction ref (not in React state — mutated during mousemove)
   const interRef = useRef({ mode: "idle" });
-  const [interRender, setInterRender] = useState(0); // bump to force re-render during connecting
+  const [, setInterRender] = useState(0); // bump to force re-render during connecting
 
   const svgRef = useRef();
   const fileRef = useRef();
@@ -556,7 +556,7 @@ export default function App() {
           {CATEGORIES.map((cat, i) => (
             <label key={cat.id} htmlFor={`field-col-width-${cat.id}`} className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-sm" style={{ background: cat.hdr }} />
-              <span className="text-gray-500">{cat.name.split(" ")[0]}:</span>
+              <span className="text-gray-500">{cat.label.split(" ")[0]}:</span>
               <input
                 id={`field-col-width-${cat.id}`}
                 type="number"
@@ -597,7 +597,7 @@ export default function App() {
                   {(() => {
                     const fontPx = FONT_SIZE.categoryHeader * PT_TO_PX;
                     const lineH = fontPx * 1.1;
-                    const lines = wrapText(cat.name.toUpperCase(), w - 8, fontPx);
+                    const lines = wrapText(cat.label.toUpperCase(), w - 8, fontPx);
                     const startY = HEADER_H / 2 - (lines.length - 1) * lineH / 2;
                     return (
                       <text x={x0 + w / 2} textAnchor="middle" dominantBaseline="central" fontSize={fontPx} fontWeight="700" fill="#fff" letterSpacing="0.4">
@@ -708,7 +708,7 @@ export default function App() {
             </defs>
 
             {/* Connections */}
-            {connections.map((c, ci) => {
+            {connections.map((c) => {
               const src = enrichedSystems.find((s) => s.id === c.sourceId);
               const tgt = enrichedSystems.find((s) => s.id === c.targetId);
               if (!src || !tgt) return null;

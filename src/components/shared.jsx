@@ -2,7 +2,6 @@
  * Shared UI primitives used by multiple components.
  */
 
-import React from "react";
 
 /** Tailwind class strings for consistent form styling. */
 export const inputClass =

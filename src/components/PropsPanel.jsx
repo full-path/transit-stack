@@ -9,7 +9,7 @@
  * callbacks passed from the parent — this component owns no state.
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { CATEGORIES, STATUS, MGMT } from "../constants";
 import { inputClass, AttrEditor } from "./shared";
 
