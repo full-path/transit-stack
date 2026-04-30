@@ -49,6 +49,15 @@ import {
   parseImport,
   downloadFile,
 } from "./utils/exportImport";
+import {
+  getStoredSheetId,
+  storeSheetId,
+  parseSheetId,
+  initTokenClient,
+  requestAccessToken,
+  readCell,
+  writeCell,
+} from "./utils/googleSheets";
 import PropsPanel from "./components/PropsPanel";
 import Legend from "./components/Legend";
 import { btnPrimary, btnSecondary } from "./components/shared";
@@ -94,6 +103,12 @@ export default function App() {
   const [sel, setSel] = useState(null); // { type: "system"|"vendor"|"connection", id }
   const [showSettings, setShowSettings] = useState(false);
   const [hoveredSys, setHoveredSys] = useState(null);
+
+  // ── Google Sheets ──
+  const [gToken, setGToken] = useState(null);
+  const [sheetUrl, setSheetUrl] = useState(getStoredSheetId);
+  const [gStatus, setGStatus] = useState("idle"); // "idle" | "connecting" | "saving" | "loading"
+  const [gError, setGError] = useState("");
 
   // Interaction ref (not in React state — mutated during mousemove)
   const interRef = useRef({ mode: "idle" });
@@ -516,27 +531,93 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const parsed = JSON.parse(ev.target.result);
-        const state = parseImport(parsed);
-        setAgencyName(state.agencyName);
-        setDocVersion(state.docVersion);
-        setDocDate(state.docDate);
-        setPaperSize(state.paperSize);
-        setColWidths(state.colWidths);
-        setVendors(state.vendors);
-        setSystems(state.systems);
-        setConnections(state.connections);
-        setSel(null);
-        historyRef.current = [];
-        futureRef.current = [];
-        setCanUndo(false);
-        setCanRedo(false);
+        applyImportedState(parseImport(JSON.parse(ev.target.result)));
       } catch (err) {
         alert("Parse error: " + err.message);
       }
     };
     reader.readAsText(file);
     e.target.value = "";
+  };
+
+  // ── Google Sheets handlers ──
+  const applyImportedState = (state) => {
+    setAgencyName(state.agencyName);
+    setDocVersion(state.docVersion);
+    setDocDate(state.docDate);
+    setPaperSize(state.paperSize);
+    setColWidths(state.colWidths);
+    setVendors(state.vendors);
+    setSystems(state.systems);
+    setConnections(state.connections);
+    setSel(null);
+    historyRef.current = [];
+    futureRef.current = [];
+    setCanUndo(false);
+    setCanRedo(false);
+  };
+
+  const connectGoogle = async () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      setGError("Set VITE_GOOGLE_CLIENT_ID in .env.local to enable Sheets");
+      return;
+    }
+    setGStatus("connecting");
+    setGError("");
+    try {
+      await initTokenClient(clientId, (response) => {
+        if (response.error) {
+          setGStatus("idle");
+          setGError(response.error_description || response.error);
+          return;
+        }
+        setGToken(response.access_token);
+        setGStatus("idle");
+      });
+      requestAccessToken();
+    } catch (e) {
+      setGStatus("idle");
+      setGError(e.message);
+    }
+  };
+
+  const handleSheetUrlChange = (val) => {
+    setSheetUrl(val);
+    storeSheetId(val);
+  };
+
+  const saveToSheet = async () => {
+    const id = parseSheetId(sheetUrl);
+    if (!gToken || !id) return;
+    setGStatus("saving");
+    setGError("");
+    try {
+      const data = buildExport({ enrichedSystems, vendors, connections, agencyName, docVersion, docDate, paperSize, colWidths });
+      await writeCell(gToken, id, "A1", JSON.stringify(data));
+      setGStatus("idle");
+    } catch (e) {
+      setGStatus("idle");
+      if (e.message === "AUTH_EXPIRED") { setGToken(null); setGError("Session expired — reconnect to save"); }
+      else setGError(e.message);
+    }
+  };
+
+  const loadFromSheet = async () => {
+    const id = parseSheetId(sheetUrl);
+    if (!gToken || !id) return;
+    setGStatus("loading");
+    setGError("");
+    try {
+      const jsonStr = await readCell(gToken, id, "A1");
+      if (!jsonStr) throw new Error("Cell A1 is empty");
+      applyImportedState(parseImport(JSON.parse(jsonStr)));
+      setGStatus("idle");
+    } catch (e) {
+      setGStatus("idle");
+      if (e.message === "AUTH_EXPIRED") { setGToken(null); setGError("Session expired — reconnect to load"); }
+      else setGError(e.message);
+    }
   };
 
   // ── Render ──
@@ -600,6 +681,51 @@ export default function App() {
         <button onClick={() => setShowSettings((p) => !p)} className={btnSecondary}>
           {showSettings ? "Hide" : "Canvas"}
         </button>
+        <div className="w-px h-5 bg-gray-300 mx-1" />
+        {!gToken ? (
+          <button
+            onClick={connectGoogle}
+            disabled={gStatus === "connecting"}
+            className={btnSecondary}
+            style={gStatus === "connecting" ? { opacity: 0.6 } : {}}
+          >
+            {gStatus === "connecting" ? "Connecting…" : "Sheets"}
+          </button>
+        ) : (
+          <>
+            <input
+              type="text"
+              className="border-b border-gray-300 bg-transparent px-1 py-0.5 text-xs focus:outline-none text-gray-700 w-44 placeholder-gray-300"
+              placeholder="Sheet URL or ID…"
+              value={sheetUrl}
+              onChange={(e) => handleSheetUrlChange(e.target.value)}
+            />
+            <button
+              onClick={loadFromSheet}
+              disabled={!sheetUrl.trim() || gStatus === "loading"}
+              className={btnSecondary}
+              style={!sheetUrl.trim() || gStatus === "loading" ? { opacity: 0.4 } : {}}
+            >
+              {gStatus === "loading" ? "Loading…" : "Load"}
+            </button>
+            <button
+              onClick={saveToSheet}
+              disabled={!sheetUrl.trim() || gStatus === "saving"}
+              className={btnSecondary}
+              style={!sheetUrl.trim() || gStatus === "saving" ? { opacity: 0.4 } : {}}
+            >
+              {gStatus === "saving" ? "Saving…" : "Save"}
+            </button>
+            <button
+              onClick={() => { setGToken(null); setGError(""); }}
+              className="text-xs text-gray-400 hover:text-gray-600 px-1"
+              title="Disconnect Google"
+            >
+              ×
+            </button>
+          </>
+        )}
+        {gError && <span className="text-xs text-red-500 max-w-xs truncate" title={gError}>{gError}</span>}
       </div>
 
       {/* ── SETTINGS BAR ── */}
