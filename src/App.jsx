@@ -102,6 +102,14 @@ export default function App() {
   const svgRef = useRef();
   const fileRef = useRef();
 
+  // ── Undo / Redo ──
+  const historyRef = useRef([]);
+  const futureRef = useRef([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const latestStateRef = useRef(null);
+  latestStateRef.current = { agencyName, docVersion, docDate, paperSize, colWidths, vendors, systems, connections };
+
   // ── Derived values ──
   const paper = PAPER_SIZES[paperSize] || PAPER_SIZES[DEFAULT_PAPER];
   const canvasW = paper.w;
@@ -180,6 +188,38 @@ export default function App() {
     el.textContent = `@page { size: ${paper.printSize}; margin: 0.5in; } @media print { svg { width: ${paper.printW}in !important; height: ${paper.printH}in !important; } }`;
   }, [paper.printSize]);
 
+  // ── Undo / Redo helpers ──
+  const saveSnapshot = useCallback((snap) => {
+    historyRef.current = [...historyRef.current.slice(-49), snap ?? latestStateRef.current];
+    futureRef.current = [];
+    setCanUndo(true);
+    setCanRedo(false);
+  }, []);
+
+  const applyState = useCallback((s) => {
+    setAgencyName(s.agencyName);
+    setDocVersion(s.docVersion);
+    setDocDate(s.docDate);
+    setPaperSize(s.paperSize);
+    setColWidths(s.colWidths);
+    setVendors(s.vendors);
+    setSystems(s.systems);
+    setConnections(s.connections);
+  }, []);
+
+  const travel = useCallback((fromRef, toRef, setCanFrom, setCanTo) => {
+    if (!fromRef.current.length) return;
+    toRef.current = [...toRef.current.slice(-49), latestStateRef.current];
+    const target = fromRef.current.at(-1);
+    fromRef.current = fromRef.current.slice(0, -1);
+    applyState(target);
+    setCanFrom(fromRef.current.length > 0);
+    setCanTo(true);
+  }, [applyState]);
+
+  const undo = useCallback(() => travel(historyRef, futureRef, setCanUndo, setCanRedo), [travel]);
+  const redo = useCallback(() => travel(futureRef, historyRef, setCanRedo, setCanUndo), [travel]);
+
   // ── SVG coordinate helper ──
   const svgCoords = useCallback(
     (e) => {
@@ -199,6 +239,7 @@ export default function App() {
       const oldP = PAPER_SIZES[paperSize] || PAPER_SIZES[DEFAULT_PAPER];
       const newP = PAPER_SIZES[newKey];
       if (!newP) return;
+      saveSnapshot();
       const rx = newP.w / oldP.w;
       const ry = newP.h / oldP.h;
       setColWidths((prev) => {
@@ -225,7 +266,7 @@ export default function App() {
       );
       setPaperSize(newKey);
     },
-    [paperSize]
+    [paperSize, saveSnapshot]
   );
 
   // ── Column width adjustment (zero-sum: steals from last column) ──
@@ -244,6 +285,7 @@ export default function App() {
 
   // ── Add / delete items ──
   const addSystem = () => {
+    saveSnapshot();
     const s = {
       id: uid(), name: "New System",
       x: canvasW / 2 - SYS_W / 2, y: canvasH / 2 - SYS_H / 2,
@@ -255,6 +297,7 @@ export default function App() {
   };
 
   const addVendor = () => {
+    saveSnapshot();
     const v = {
       id: uid(), name: "New Vendor",
       x: canvasW / 2 - 120, y: canvasH / 2 - 80,
@@ -267,6 +310,7 @@ export default function App() {
 
   const deleteSelected = () => {
     if (!sel) return;
+    saveSnapshot();
     if (sel.type === "system") {
       setSystems((p) => p.filter((s) => s.id !== sel.id));
       setConnections((p) => p.filter((c) => c.sourceId !== sel.id && c.targetId !== sel.id));
@@ -288,7 +332,7 @@ export default function App() {
 
       if (role === "port") {
         e.stopPropagation();
-        interRef.current = { mode: "connecting", sourceId: eid, startPt: pt, currentPt: pt };
+        interRef.current = { mode: "connecting", sourceId: eid, startPt: pt, currentPt: pt, snapshot: latestStateRef.current };
         setInterRender((r) => r + 1);
         return;
       }
@@ -298,10 +342,10 @@ export default function App() {
         const rtype = target.getAttribute("data-type");
         if (rtype === "system") {
           const s = systems.find((x) => x.id === eid);
-          if (s) interRef.current = { mode: "resizing", rtype, id: eid, corner, origRect: { ...s }, startPt: pt };
+          if (s) interRef.current = { mode: "resizing", rtype, id: eid, corner, origRect: { ...s }, startPt: pt, snapshot: latestStateRef.current };
         } else {
           const v = vendors.find((x) => x.id === eid);
-          if (v) interRef.current = { mode: "resizing", rtype, id: eid, corner, origRect: { ...v }, startPt: pt };
+          if (v) interRef.current = { mode: "resizing", rtype, id: eid, corner, origRect: { ...v }, startPt: pt, snapshot: latestStateRef.current };
         }
         return;
       }
@@ -309,14 +353,14 @@ export default function App() {
         e.stopPropagation();
         setSel({ type: "system", id: eid });
         const s = systems.find((x) => x.id === eid);
-        if (s) interRef.current = { mode: "dragging", type: "system", id: eid, offset: { x: pt.x - s.x, y: pt.y - s.y } };
+        if (s) interRef.current = { mode: "dragging", type: "system", id: eid, offset: { x: pt.x - s.x, y: pt.y - s.y }, snapshot: latestStateRef.current };
         return;
       }
       if (role === "vendor") {
         e.stopPropagation();
         setSel({ type: "vendor", id: eid });
         const v = vendors.find((x) => x.id === eid);
-        if (v) interRef.current = { mode: "dragging", type: "vendor", id: eid, offset: { x: pt.x - v.x, y: pt.y - v.y } };
+        if (v) interRef.current = { mode: "dragging", type: "vendor", id: eid, offset: { x: pt.x - v.x, y: pt.y - v.y }, snapshot: latestStateRef.current };
         return;
       }
       if (role === "connection") {
@@ -326,7 +370,7 @@ export default function App() {
       }
       if (role === "col-resize") {
         e.stopPropagation();
-        interRef.current = { mode: "col-resize", ci: parseInt(target.getAttribute("data-ci")), startX: pt.x, origWidths: [...colWidths] };
+        interRef.current = { mode: "col-resize", ci: parseInt(target.getAttribute("data-ci")), startX: pt.x, origWidths: [...colWidths], snapshot: latestStateRef.current };
         return;
       }
       setSel(null);
@@ -341,6 +385,7 @@ export default function App() {
       const pt = svgCoords(e);
 
       if (inter.mode === "dragging" && inter.type === "system") {
+        inter.moved = true;
         setSystems((ss) =>
           ss.map((s) =>
             s.id === inter.id
@@ -349,6 +394,7 @@ export default function App() {
           )
         );
       } else if (inter.mode === "dragging" && inter.type === "vendor") {
+        inter.moved = true;
         setVendors((vs) =>
           vs.map((v) =>
             v.id === inter.id
@@ -357,6 +403,7 @@ export default function App() {
           )
         );
       } else if (inter.mode === "resizing") {
+        inter.moved = true;
         const { id, corner, origRect, startPt, rtype } = inter;
         const dx = pt.x - startPt.x;
         const dy = pt.y - startPt.y;
@@ -377,6 +424,7 @@ export default function App() {
         inter.currentPt = pt;
         setInterRender((r) => r + 1);
       } else if (inter.mode === "col-resize") {
+        inter.moved = true;
         const dx = pt.x - inter.startX;
         const ci = inter.ci;
         const nL = inter.origWidths[ci] + dx;
@@ -408,6 +456,7 @@ export default function App() {
             pt.y <= s.y + s.height
         );
         if (tgt) {
+          saveSnapshot(inter.snapshot);
           const c = {
             id: uid(),
             sourceId: inter.sourceId,
@@ -424,11 +473,13 @@ export default function App() {
           setConnections((p) => [...p, c]);
           setSel({ type: "connection", id: c.id });
         }
+      } else if (inter.moved && inter.snapshot) {
+        saveSnapshot(inter.snapshot);
       }
       interRef.current = { mode: "idle" };
       setInterRender((r) => r + 1);
     },
-    [svgCoords, systems]
+    [svgCoords, systems, saveSnapshot]
   );
 
   useEffect(() => {
@@ -436,6 +487,15 @@ export default function App() {
     window.addEventListener("mouseup", up);
     return () => window.removeEventListener("mouseup", up);
   }, [onMouseUp]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) { e.preventDefault(); redo(); }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [undo, redo]);
 
   // ── Export/Import handlers ──
   const doExport = () => {
@@ -467,6 +527,10 @@ export default function App() {
         setSystems(state.systems);
         setConnections(state.connections);
         setSel(null);
+        historyRef.current = [];
+        futureRef.current = [];
+        setCanUndo(false);
+        setCanRedo(false);
       } catch (err) {
         alert("Parse error: " + err.message);
       }
@@ -479,6 +543,7 @@ export default function App() {
   if (!loaded) return <div className="p-8 text-gray-400 text-sm">Loading…</div>;
 
   const inter = interRef.current;
+  const withSnapshot = (setter) => (val) => { saveSnapshot(); setter(val); };
 
   // Derived connection annotation dimensions (font-size-aware)
   const labelFontPx  = FONT_SIZE.connectionLabel  * PT_TO_PX;
@@ -525,6 +590,8 @@ export default function App() {
             Delete
           </button>
         )}
+        <button onClick={undo} disabled={!canUndo} className={btnSecondary} style={!canUndo ? { opacity: 0.4 } : {}}>Undo</button>
+        <button onClick={redo} disabled={!canRedo} className={btnSecondary} style={!canRedo ? { opacity: 0.4 } : {}}>Redo</button>
         <div className="w-px h-5 bg-gray-300 mx-1" />
         <button onClick={doExport} className={btnSecondary}>Export JSON</button>
         <button onClick={doExportSvg} className={btnSecondary}>Export SVG</button>
@@ -794,9 +861,9 @@ export default function App() {
             systems={enrichedSystems}
             vendors={vendors}
             connections={connections}
-            setSystems={setSystems}
-            setVendors={setVendors}
-            setConnections={setConnections}
+            setSystems={withSnapshot(setSystems)}
+            setVendors={withSnapshot(setVendors)}
+            setConnections={withSnapshot(setConnections)}
             onDeselect={() => setSel(null)}
           />
         </div>
