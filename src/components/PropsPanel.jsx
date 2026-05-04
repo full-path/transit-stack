@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { CATEGORIES, STATUS, MGMT } from "../constants";
+import { CATEGORIES, STATUS, MGMT, DATASET_TYPES, JOB_TYPES, SOURCE_CATEGORIES } from "../constants";
 import { inputClass, AttrEditor } from "./shared";
 
 const Header = ({ label, onDeselect }) => (
@@ -38,9 +38,17 @@ export default function PropsPanel({
   systems,
   vendors,
   connections,
+  datasets,
+  jobs,
+  funders,
+  lineageConnections,
   setSystems,
   setVendors,
   setConnections,
+  setDatasets,
+  setJobs,
+  setFunders,
+  setLineageConnections,
   onDeselect,
 }) {
   const [editedItem, setEditedItem] = useState(null);
@@ -57,8 +65,12 @@ export default function PropsPanel({
     if (type === "system") item = systems.find((s) => s.id === id);
     if (type === "vendor") item = vendors.find((v) => v.id === id);
     if (type === "connection") item = connections.find((c) => c.id === id);
+    if (type === "dataset") item = datasets.find((d) => d.id === id);
+    if (type === "job") item = jobs.find((j) => j.id === id);
+    if (type === "funder") item = funders.find((f) => f.id === id);
+    if (type === "lineage_connection") item = lineageConnections.find((c) => c.id === id);
     setEditedItem(item);
-  }, [sel]); // DO NOT listen to systems/vendors/connections - causes re-renders
+  }, [sel]); // DO NOT listen to arrays - causes re-renders
 
   const handleBlur = () => {
     if (!editedItemRef.current) return;
@@ -67,6 +79,10 @@ export default function PropsPanel({
     if (type === "system") updateSys(id, patch);
     if (type === "vendor") updateVen(id, patch);
     if (type === "connection") updateCon(id, patch);
+    if (type === "dataset") updateDs(id, patch);
+    if (type === "job") updateJob(id, patch);
+    if (type === "funder") updateFunder(id, patch);
+    if (type === "lineage_connection") updateLConn(id, patch);
   };
 
   if (!sel || !editedItem) return null;
@@ -78,9 +94,15 @@ export default function PropsPanel({
   const updateVen = (id, patch) =>
     setVendors((vs) => vs.map((v) => (v.id === id ? { ...v, ...patch } : v)));
   const updateCon = (id, patch) =>
-    setConnections((cs) =>
-      cs.map((c) => (c.id === id ? { ...c, ...patch } : c))
-    );
+    setConnections((cs) => cs.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+  const updateDs = (id, patch) =>
+    setDatasets((ds) => ds.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+  const updateJob = (id, patch) =>
+    setJobs((js) => js.map((j) => (j.id === id ? { ...j, ...patch } : j)));
+  const updateFunder = (id, patch) =>
+    setFunders((fs) => fs.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  const updateLConn = (id, patch) =>
+    setLineageConnections((cs) => cs.map((c) => (c.id === id ? { ...c, ...patch } : c)));
 
   const panelClass =
     "w-64 bg-white border-l border-gray-200 p-3 overflow-y-auto text-xs";
@@ -314,6 +336,123 @@ export default function PropsPanel({
             onBlur={handleBlur}
           />
         </div>
+      </div>
+    );
+  }
+
+  // ── Dataset ──
+  if (type === "dataset") {
+    const d = editedItem;
+    if (!d) return null;
+    return (
+      <div className={panelClass}>
+        <Header label="Dataset" onDeselect={onDeselect} />
+        <Label label="Name">
+          <input className={inputClass} value={d.name} onChange={(e) => setEditedItem({ ...d, name: e.target.value })} onBlur={handleBlur} />
+        </Label>
+        <Label label="Type">
+          <select className={inputClass} value={d.datasetType || "extract"} onChange={(e) => { const patch = { datasetType: e.target.value }; setEditedItem({ ...d, ...patch }); updateDs(id, patch); }}>
+            {DATASET_TYPES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </Label>
+        <Label label="Source Category">
+          <select className={inputClass} value={d.sourceCategory || "na"} onChange={(e) => { const patch = { sourceCategory: e.target.value }; setEditedItem({ ...d, ...patch }); updateDs(id, patch); }}>
+            {SOURCE_CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </Label>
+        <Label label="Namespace">
+          <input className={inputClass} value={d.namespace || ""} placeholder="e.g., Google Sheets" onChange={(e) => setEditedItem({ ...d, namespace: e.target.value })} onBlur={handleBlur} />
+        </Label>
+        <Label label="Update Frequency">
+          <input className={inputClass} value={d.updateFrequency || ""} placeholder="e.g., Daily" onChange={(e) => setEditedItem({ ...d, updateFrequency: e.target.value })} onBlur={handleBlur} />
+        </Label>
+        <Label label="Description">
+          <textarea className={inputClass} rows={2} value={d.description || ""} onChange={(e) => setEditedItem({ ...d, description: e.target.value })} onBlur={handleBlur} />
+        </Label>
+        <div className="mb-2">
+          <span className="font-semibold text-gray-600 block mb-0.5">Attributes</span>
+          <AttrEditor attrs={d.attributes || {}} onChange={(a) => setEditedItem({ ...d, attributes: a })} onBlur={handleBlur} />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Job ──
+  if (type === "job") {
+    const j = editedItem;
+    if (!j) return null;
+    return (
+      <div className={panelClass}>
+        <Header label="Job" onDeselect={onDeselect} />
+        <Label label="Name">
+          <input className={inputClass} value={j.name} onChange={(e) => setEditedItem({ ...j, name: e.target.value })} onBlur={handleBlur} />
+        </Label>
+        <Label label="Type">
+          <select className={inputClass} value={j.jobType || "manual_export"} onChange={(e) => { const patch = { jobType: e.target.value }; setEditedItem({ ...j, ...patch }); updateJob(id, patch); }}>
+            {JOB_TYPES.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </Label>
+        <Label label="Responsible Person">
+          <input className={inputClass} value={j.responsiblePerson || ""} placeholder="e.g., Jane Smith" onChange={(e) => setEditedItem({ ...j, responsiblePerson: e.target.value })} onBlur={handleBlur} />
+        </Label>
+        <Label label="Frequency">
+          <input className={inputClass} value={j.frequency || ""} placeholder="e.g., Monthly" onChange={(e) => setEditedItem({ ...j, frequency: e.target.value })} onBlur={handleBlur} />
+        </Label>
+        <label className="flex items-center gap-2 mb-2 cursor-pointer">
+          <input type="checkbox" checked={j.automated || false} onChange={(e) => { const patch = { automated: e.target.checked }; setEditedItem({ ...j, ...patch }); updateJob(id, patch); }} />
+          <span className="font-semibold text-gray-600">Automated</span>
+        </label>
+        <Label label="Description">
+          <textarea className={inputClass} rows={2} value={j.description || ""} onChange={(e) => setEditedItem({ ...j, description: e.target.value })} onBlur={handleBlur} />
+        </Label>
+        <div className="mb-2">
+          <span className="font-semibold text-gray-600 block mb-0.5">Attributes</span>
+          <AttrEditor attrs={j.attributes || {}} onChange={(a) => setEditedItem({ ...j, attributes: a })} onBlur={handleBlur} />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Funder ──
+  if (type === "funder") {
+    const f = editedItem;
+    if (!f) return null;
+    return (
+      <div className={panelClass}>
+        <Header label="Funder" onDeselect={onDeselect} />
+        <Label label="Name">
+          <input className={inputClass} value={f.name} onChange={(e) => setEditedItem({ ...f, name: e.target.value })} onBlur={handleBlur} />
+        </Label>
+        <Label label="Program Name">
+          <input className={inputClass} value={f.programName || ""} onChange={(e) => setEditedItem({ ...f, programName: e.target.value })} onBlur={handleBlur} />
+        </Label>
+        <Label label="Contact">
+          <input className={inputClass} value={f.contact || ""} onChange={(e) => setEditedItem({ ...f, contact: e.target.value })} onBlur={handleBlur} />
+        </Label>
+        <Label label="Reporting Frequency">
+          <input className={inputClass} value={f.reportingFrequency || ""} placeholder="e.g., Quarterly" onChange={(e) => setEditedItem({ ...f, reportingFrequency: e.target.value })} onBlur={handleBlur} />
+        </Label>
+        <Label label="Notes">
+          <textarea className={inputClass} rows={3} value={f.notes || ""} onChange={(e) => setEditedItem({ ...f, notes: e.target.value })} onBlur={handleBlur} />
+        </Label>
+        <p className="text-gray-400 mt-2">Drag corners to resize.</p>
+      </div>
+    );
+  }
+
+  // ── Lineage Connection ──
+  if (type === "lineage_connection") {
+    const c = editedItem;
+    if (!c) return null;
+    const allNodes = [...(datasets || []), ...(jobs || [])];
+    const nodeName = (nid) => allNodes.find((n) => n.id === nid)?.name || nid;
+    return (
+      <div className={panelClass}>
+        <Header label="Lineage Connection" onDeselect={onDeselect} />
+        <p className="text-gray-500 mb-2">{nodeName(c.sourceId)} → {nodeName(c.targetId)}</p>
+        <Label label="Description">
+          <textarea className={inputClass} rows={2} value={c.description || ""} onChange={(e) => setEditedItem({ ...c, description: e.target.value })} onBlur={handleBlur} />
+        </Label>
       </div>
     );
   }

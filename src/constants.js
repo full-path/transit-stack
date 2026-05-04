@@ -69,6 +69,88 @@ export const SYS_BORDER = {
   vendor: { stroke: "#aaa", strokeWidth: 1.5 },
 };
 
+// ── Lineage view columns ──
+export const LINEAGE_COLUMNS = [
+  { id: "vehicle_sources",   label: "Vehicle Sources",    name: "Vehicle Sources",    bg: "#e8f4f844", hdr: "#2e7d9e" },
+  { id: "backoffice_sources",label: "Back-office Sources", name: "Back-office Sources", bg: "#f0f4e844", hdr: "#5a7a2e" },
+  { id: "processing",        label: "Processing",          name: "Processing",          bg: "#f4ece844", hdr: "#9e6b2e" },
+  { id: "outputs",           label: "Outputs",             name: "Outputs",             bg: "#f4e8f044", hdr: "#7a2e7a" },
+  { id: "destinations",      label: "Destinations",        name: "Destinations",        bg: "#e8eaf444", hdr: "#3d4fa8" },
+];
+
+export const LINEAGE_COL_IDS = LINEAGE_COLUMNS.map((c) => c.id);
+
+export const DATASET_TYPES = [
+  { id: "extract",     name: "Extract" },
+  { id: "spreadsheet", name: "Spreadsheet" },
+  { id: "report",      name: "Report" },
+  { id: "dashboard",   name: "Dashboard" },
+  { id: "feed",        name: "Feed" },
+  { id: "db_table",    name: "DB Table" },
+];
+
+export const JOB_TYPES = [
+  { id: "manual_export",    name: "Manual Export" },
+  { id: "manual_transform", name: "Manual Transform" },
+  { id: "manual_entry",     name: "Manual Entry" },
+  { id: "file_transfer",    name: "File Transfer" },
+  { id: "upload",           name: "Upload" },
+  { id: "automated",        name: "Automated" },
+];
+
+export const SOURCE_CATEGORIES = [
+  { id: "vehicle",     name: "Vehicle" },
+  { id: "back_office", name: "Back-office" },
+  { id: "na",          name: "N/A" },
+];
+
+/** Visual style for dataset nodes. */
+export const DATASET_STYLE = {
+  fill: "#e3f2fd",
+  stroke: "#1976d2",
+  strokeWidth: 1.5,
+  strokeSelected: "#0d47a1",
+  strokeWidthSelected: 2.5,
+  rx: 4,
+  defaultW: 130,
+  defaultH: 46,
+};
+
+/** Visual style for job nodes. */
+export const JOB_STYLE = {
+  fill: "#fff3e0",
+  stroke: "#e65100",
+  strokeWidth: 1.5,
+  strokeSelected: "#bf360c",
+  strokeWidthSelected: 2.5,
+  rx: 14,
+  defaultW: 130,
+  defaultH: 46,
+};
+
+/** Visual style for funder boxes (recipient containers). */
+export const FUNDER_STYLE = {
+  fill: "#f3e5f5",
+  stroke: "#7b1fa2",
+  strokeWidth: 1.5,
+  strokeSelected: "#4a148c",
+  strokeWidthSelected: 2,
+  rx: 10,
+  labelPaddingX: 8,
+  labelPaddingTop: 4,
+  defaultW: 240,
+  defaultH: 160,
+};
+
+/** Visual style for lineage connections. */
+export const LINEAGE_CONN_STYLE = {
+  stroke: "#555",
+  strokeSelected: "#111",
+  strokeWidth: 1.5,
+  strokeWidthSelected: 2.5,
+  dash: "6,3",
+};
+
 /** Visual style for vendor boxes. */
 export const VENDOR_STYLE = {
   fill: "#e8e8e8",
@@ -128,8 +210,11 @@ export const PT_TO_PX = 96 / 72;
 export const FONT_SIZE = {
   categoryHeader: 12,
   vendorLabel: 12,
+  funderLabel: 12,
   systemName: 12,
   systemDesc: 11,
+  datasetName: 11,
+  jobName: 11,
   watermark: 10,
   connectionLabel: 10,
   connectionVendor: 10,
@@ -146,6 +231,12 @@ export const SYS_H = 52;
  * roughly in proportion to typical content density per category.
  */
 export function defaultColWidths(totalW) {
+  const ratios = [0.20, 0.20, 0.20, 0.20, 0.20];
+  return ratios.map((r) => Math.round(totalW * r));
+}
+
+/** Default lineage column widths — equal distribution across 5 columns. */
+export function defaultLineageColWidths(totalW) {
   const ratios = [0.20, 0.20, 0.20, 0.20, 0.20];
   return ratios.map((r) => Math.round(totalW * r));
 }

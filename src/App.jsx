@@ -19,29 +19,27 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import {
   CATEGORIES,
   CAT_IDS,
+  LINEAGE_COLUMNS,
   STATUS,
-  MGMT,
   PAPER_SIZES,
   DEFAULT_PAPER,
   HEADER_H,
   MIN_COL_W,
   SYS_W,
   SYS_H,
-  SYS_RX,
-  SYS_BORDER,
+  DATASET_STYLE,
+  JOB_STYLE,
+  FUNDER_STYLE,
+  LINEAGE_CONN_STYLE,
   FONT_SIZE,
   PT_TO_PX,
-  VENDOR_STYLE,
-  CONN_THICKNESS,
-  CONN_LABEL_STYLE,
-  CONN_VENDOR_STYLE,
-  PORT_COLOR,
   CANVAS_BG,
   FONT_FAMILY,
   defaultColWidths,
+  defaultLineageColWidths,
   normalizeColWidths,
 } from "./constants";
-import { edgePt, rectContains, portPositions } from "./utils/geometry";
+import { rectContains } from "./utils/geometry";
 import { load, save } from "./utils/storage";
 import {
   uid,
@@ -49,6 +47,7 @@ import {
   parseImport,
   downloadFile,
 } from "./utils/exportImport";
+import { autoLayout } from "./utils/lineageLayout";
 import {
   getStoredSheetId,
   storeSheetId,
@@ -60,30 +59,9 @@ import {
 } from "./utils/googleSheets";
 import PropsPanel from "./components/PropsPanel";
 import Legend from "./components/Legend";
+import SystemsCanvas from "./components/SystemsCanvas";
+import LineageCanvas from "./components/LineageCanvas";
 import { btnPrimary, btnSecondary } from "./components/shared";
-
-/**
- * Greedy word-wrap for SVG text. Returns an array of lines that each fit
- * within maxWidth, using an estimated character width of fontPx * 0.7
- * (intentionally generous to account for uppercase glyphs and emoji).
- */
-function wrapText(text, maxWidth, fontPx) {
-  const charW = fontPx * 0.7;
-  const words = text.split(" ");
-  const lines = [];
-  let cur = "";
-  for (const word of words) {
-    const test = cur ? cur + " " + word : word;
-    if (cur && test.length * charW > maxWidth) {
-      lines.push(cur);
-      cur = word;
-    } else {
-      cur = test;
-    }
-  }
-  if (cur) lines.push(cur);
-  return lines;
-}
 
 export default function App() {
   // ── State ──
@@ -100,7 +78,15 @@ export default function App() {
   const [vendors, setVendors] = useState([]);
   const [systems, setSystems] = useState([]);
   const [connections, setConnections] = useState([]);
-  const [sel, setSel] = useState(null); // { type: "system"|"vendor"|"connection", id }
+  const [activeView, setActiveView] = useState("systems"); // "systems" | "lineage"
+  const [datasets, setDatasets] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [funders, setFunders] = useState([]);
+  const [lineageConnections, setLineageConnections] = useState([]);
+  const [lineageColWidths, setLineageColWidths] = useState(
+    defaultLineageColWidths(PAPER_SIZES[DEFAULT_PAPER].w)
+  );
+  const [sel, setSel] = useState(null); // { type: "system"|"vendor"|"connection"|"dataset"|"job"|"funder"|"lineage_connection", id }
   const [showSettings, setShowSettings] = useState(false);
   const [hoveredSys, setHoveredSys] = useState(null);
 
@@ -123,7 +109,7 @@ export default function App() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const latestStateRef = useRef(null);
-  latestStateRef.current = { agencyName, docVersion, docDate, paperSize, colWidths, vendors, systems, connections };
+  latestStateRef.current = { agencyName, docVersion, docDate, paperSize, colWidths, lineageColWidths, vendors, systems, connections, activeView, datasets, jobs, funders, lineageConnections };
 
   // ── Derived values ──
   const paper = PAPER_SIZES[paperSize] || PAPER_SIZES[DEFAULT_PAPER];
@@ -135,6 +121,12 @@ export default function App() {
     colWidths.forEach((w) => b.push(b[b.length - 1] + w));
     return b;
   }, [colWidths]);
+
+  const lineageColBounds = useMemo(() => {
+    const b = [0];
+    lineageColWidths.forEach((w) => b.push(b[b.length - 1] + w));
+    return b;
+  }, [lineageColWidths]);
 
   /**
    * enrichedSystems: each system augmented with derived fields:
@@ -174,24 +166,25 @@ export default function App() {
       setDocDate(saved.docDate || new Date().toISOString().slice(0, 10));
       setPaperSize(saved.paperSize || DEFAULT_PAPER);
       const loadedPaper = PAPER_SIZES[saved.paperSize || DEFAULT_PAPER] || PAPER_SIZES[DEFAULT_PAPER];
-      setColWidths(
-        normalizeColWidths(
-          saved.colWidths || defaultColWidths(loadedPaper.w),
-          loadedPaper.w
-        )
-      );
+      setColWidths(normalizeColWidths(saved.colWidths || defaultColWidths(loadedPaper.w), loadedPaper.w));
+      setLineageColWidths(normalizeColWidths(saved.lineageColWidths || defaultLineageColWidths(loadedPaper.w), loadedPaper.w));
       setVendors(saved.vendors || []);
       setSystems(saved.systems || []);
       setConnections(saved.connections || []);
+      setActiveView(saved.activeView || "systems");
+      setDatasets(saved.datasets || []);
+      setJobs(saved.jobs || []);
+      setFunders(saved.funders || []);
+      setLineageConnections(saved.lineageConnections || []);
     }
     setLoaded(true);
   }, []);
 
   useEffect(() => {
     if (loaded) {
-      save({ agencyName, docVersion, docDate, paperSize, colWidths, vendors, systems, connections });
+      save({ agencyName, docVersion, docDate, paperSize, colWidths, lineageColWidths, vendors, systems, connections, activeView, datasets, jobs, funders, lineageConnections });
     }
-  }, [agencyName, docVersion, docDate, paperSize, colWidths, vendors, systems, connections, loaded]);
+  }, [agencyName, docVersion, docDate, paperSize, colWidths, lineageColWidths, vendors, systems, connections, activeView, datasets, jobs, funders, lineageConnections, loaded]);
 
   useEffect(() => {
     let el = document.getElementById("transit-stack-page-style");
@@ -217,9 +210,15 @@ export default function App() {
     setDocDate(s.docDate);
     setPaperSize(s.paperSize);
     setColWidths(s.colWidths);
+    setLineageColWidths(s.lineageColWidths);
     setVendors(s.vendors);
     setSystems(s.systems);
     setConnections(s.connections);
+    setActiveView(s.activeView || "systems");
+    setDatasets(s.datasets || []);
+    setJobs(s.jobs || []);
+    setFunders(s.funders || []);
+    setLineageConnections(s.lineageConnections || []);
   }, []);
 
   const travel = useCallback((fromRef, toRef, setCanFrom, setCanTo) => {
@@ -273,12 +272,23 @@ export default function App() {
         }))
       );
       setSystems((ss) =>
-        ss.map((s) => ({
-          ...s,
-          x: s.x * rx,
-          y: Math.min(s.y * ry, newP.h - s.height),
-        }))
+        ss.map((s) => ({ ...s, x: s.x * rx, y: Math.min(s.y * ry, newP.h - s.height) }))
       );
+      setDatasets((ds) =>
+        ds.map((d) => ({ ...d, x: d.x * rx, y: Math.min(d.y * ry, newP.h - d.height) }))
+      );
+      setJobs((js) =>
+        js.map((j) => ({ ...j, x: j.x * rx, y: Math.min(j.y * ry, newP.h - j.height) }))
+      );
+      setFunders((fs) =>
+        fs.map((f) => ({ ...f, x: f.x * rx, y: Math.min(f.y * ry, newP.h - f.height), width: f.width * rx, height: f.height * ry }))
+      );
+      setLineageColWidths((prev) => {
+        const scaled = prev.map((w) => Math.max(MIN_COL_W, Math.round(w * rx)));
+        const sum = scaled.reduce((a, b) => a + b, 0);
+        scaled[scaled.length - 1] = Math.max(MIN_COL_W, scaled[scaled.length - 1] + (newP.w - sum));
+        return scaled;
+      });
       setPaperSize(newKey);
     },
     [paperSize, saveSnapshot]
@@ -293,7 +303,20 @@ export default function App() {
       const delta = clamped - prev[ci];
       const nw = [...prev];
       nw[ci] = clamped;
-      nw[comp] = nw[comp] - delta; // guaranteed ≥ MIN_COL_W by maxW clamp above
+      nw[comp] = nw[comp] - delta;
+      return nw;
+    });
+  }, []);
+
+  const adjustLineageColWidth = useCallback((ci, newW) => {
+    setLineageColWidths((prev) => {
+      const comp = ci === prev.length - 1 ? ci - 1 : prev.length - 1;
+      const maxW = prev.reduce((a, b) => a + b, 0) - (prev.length - 1) * MIN_COL_W;
+      const clamped = Math.max(MIN_COL_W, Math.min(Math.round(newW), maxW));
+      const delta = clamped - prev[ci];
+      const nw = [...prev];
+      nw[ci] = clamped;
+      nw[comp] = nw[comp] - delta;
       return nw;
     });
   }, []);
@@ -333,9 +356,63 @@ export default function App() {
       setVendors((p) => p.filter((v) => v.id !== sel.id));
     } else if (sel.type === "connection") {
       setConnections((p) => p.filter((c) => c.id !== sel.id));
+    } else if (sel.type === "dataset") {
+      setDatasets((p) => p.filter((d) => d.id !== sel.id));
+      setLineageConnections((p) => p.filter((c) => c.sourceId !== sel.id && c.targetId !== sel.id));
+    } else if (sel.type === "job") {
+      setJobs((p) => p.filter((j) => j.id !== sel.id));
+      setLineageConnections((p) => p.filter((c) => c.sourceId !== sel.id && c.targetId !== sel.id));
+    } else if (sel.type === "funder") {
+      setFunders((p) => p.filter((f) => f.id !== sel.id));
+    } else if (sel.type === "lineage_connection") {
+      setLineageConnections((p) => p.filter((c) => c.id !== sel.id));
     }
     setSel(null);
   };
+
+  const addDataset = () => {
+    saveSnapshot();
+    const d = {
+      id: uid(), name: "New Dataset",
+      x: canvasW / 2 - DATASET_STYLE.defaultW / 2, y: canvasH / 2 - DATASET_STYLE.defaultH / 2,
+      width: DATASET_STYLE.defaultW, height: DATASET_STYLE.defaultH,
+      datasetType: "extract", sourceCategory: "na",
+      namespace: "", updateFrequency: "", sourceSystemId: null, description: "", attributes: {},
+    };
+    setDatasets((p) => [...p, d]);
+    setSel({ type: "dataset", id: d.id });
+  };
+
+  const addJob = () => {
+    saveSnapshot();
+    const j = {
+      id: uid(), name: "New Job",
+      x: canvasW / 2 - JOB_STYLE.defaultW / 2, y: canvasH / 2 - JOB_STYLE.defaultH / 2,
+      width: JOB_STYLE.defaultW, height: JOB_STYLE.defaultH,
+      jobType: "manual_export", responsiblePerson: "", frequency: "", automated: false, description: "", attributes: {},
+    };
+    setJobs((p) => [...p, j]);
+    setSel({ type: "job", id: j.id });
+  };
+
+  const addFunder = () => {
+    saveSnapshot();
+    const f = {
+      id: uid(), name: "New Funder",
+      x: canvasW / 2 - FUNDER_STYLE.defaultW / 2, y: canvasH / 2 - FUNDER_STYLE.defaultH / 2,
+      width: FUNDER_STYLE.defaultW, height: FUNDER_STYLE.defaultH,
+      programName: "", contact: "", reportingFrequency: "", notes: "",
+    };
+    setFunders((p) => [...p, f]);
+    setSel({ type: "funder", id: f.id });
+  };
+
+  const autoLayoutLineage = useCallback(() => {
+    saveSnapshot();
+    const result = autoLayout(datasets, jobs, lineageConnections, lineageColBounds, canvasH);
+    setDatasets(result.datasets);
+    setJobs(result.jobs);
+  }, [datasets, jobs, lineageConnections, lineageColBounds, canvasH, saveSnapshot]);
 
   // ── Mouse interaction ──
   const onMouseDown = useCallback(
@@ -358,6 +435,15 @@ export default function App() {
         if (rtype === "system") {
           const s = systems.find((x) => x.id === eid);
           if (s) interRef.current = { mode: "resizing", rtype, id: eid, corner, origRect: { ...s }, startPt: pt, snapshot: latestStateRef.current };
+        } else if (rtype === "dataset") {
+          const d = datasets.find((x) => x.id === eid);
+          if (d) interRef.current = { mode: "resizing", rtype, id: eid, corner, origRect: { ...d }, startPt: pt, snapshot: latestStateRef.current };
+        } else if (rtype === "job") {
+          const j = jobs.find((x) => x.id === eid);
+          if (j) interRef.current = { mode: "resizing", rtype, id: eid, corner, origRect: { ...j }, startPt: pt, snapshot: latestStateRef.current };
+        } else if (rtype === "funder") {
+          const f = funders.find((x) => x.id === eid);
+          if (f) interRef.current = { mode: "resizing", rtype, id: eid, corner, origRect: { ...f }, startPt: pt, snapshot: latestStateRef.current };
         } else {
           const v = vendors.find((x) => x.id === eid);
           if (v) interRef.current = { mode: "resizing", rtype, id: eid, corner, origRect: { ...v }, startPt: pt, snapshot: latestStateRef.current };
@@ -378,9 +464,41 @@ export default function App() {
         if (v) interRef.current = { mode: "dragging", type: "vendor", id: eid, offset: { x: pt.x - v.x, y: pt.y - v.y }, snapshot: latestStateRef.current };
         return;
       }
+      if (role === "dataset") {
+        e.stopPropagation();
+        setSel({ type: "dataset", id: eid });
+        const d = datasets.find((x) => x.id === eid);
+        if (d) interRef.current = { mode: "dragging", type: "dataset", id: eid, offset: { x: pt.x - d.x, y: pt.y - d.y }, snapshot: latestStateRef.current };
+        return;
+      }
+      if (role === "job") {
+        e.stopPropagation();
+        setSel({ type: "job", id: eid });
+        const j = jobs.find((x) => x.id === eid);
+        if (j) interRef.current = { mode: "dragging", type: "job", id: eid, offset: { x: pt.x - j.x, y: pt.y - j.y }, snapshot: latestStateRef.current };
+        return;
+      }
+      if (role === "funder") {
+        e.stopPropagation();
+        setSel({ type: "funder", id: eid });
+        const f = funders.find((x) => x.id === eid);
+        if (f) interRef.current = { mode: "dragging", type: "funder", id: eid, offset: { x: pt.x - f.x, y: pt.y - f.y }, snapshot: latestStateRef.current };
+        return;
+      }
+      if (role === "lineage-port") {
+        e.stopPropagation();
+        interRef.current = { mode: "lineage-connecting", sourceId: eid, sourceType: target.getAttribute("data-node-type"), startPt: pt, currentPt: pt, snapshot: latestStateRef.current };
+        setInterRender((r) => r + 1);
+        return;
+      }
       if (role === "connection") {
         e.stopPropagation();
         setSel({ type: "connection", id: eid });
+        return;
+      }
+      if (role === "lineage-connection") {
+        e.stopPropagation();
+        setSel({ type: "lineage_connection", id: eid });
         return;
       }
       if (role === "col-resize") {
@@ -388,9 +506,14 @@ export default function App() {
         interRef.current = { mode: "col-resize", ci: parseInt(target.getAttribute("data-ci")), startX: pt.x, origWidths: [...colWidths], snapshot: latestStateRef.current };
         return;
       }
+      if (role === "lineage-col-resize") {
+        e.stopPropagation();
+        interRef.current = { mode: "lineage-col-resize", ci: parseInt(target.getAttribute("data-ci")), startX: pt.x, origWidths: [...lineageColWidths], snapshot: latestStateRef.current };
+        return;
+      }
       setSel(null);
     },
-    [svgCoords, systems, vendors, colWidths]
+    [svgCoords, systems, vendors, datasets, jobs, funders, colWidths, lineageColWidths]
   );
 
   const onMouseMove = useCallback(
@@ -402,20 +525,37 @@ export default function App() {
       if (inter.mode === "dragging" && inter.type === "system") {
         inter.moved = true;
         setSystems((ss) =>
-          ss.map((s) =>
-            s.id === inter.id
-              ? { ...s, x: Math.max(0, Math.min(canvasW - s.width, pt.x - inter.offset.x)), y: Math.max(HEADER_H, Math.min(canvasH - s.height, pt.y - inter.offset.y)) }
-              : s
-          )
+          ss.map((s) => s.id === inter.id
+            ? { ...s, x: Math.max(0, Math.min(canvasW - s.width, pt.x - inter.offset.x)), y: Math.max(HEADER_H, Math.min(canvasH - s.height, pt.y - inter.offset.y)) }
+            : s)
         );
       } else if (inter.mode === "dragging" && inter.type === "vendor") {
         inter.moved = true;
         setVendors((vs) =>
-          vs.map((v) =>
-            v.id === inter.id
-              ? { ...v, x: Math.max(0, Math.min(canvasW - v.width, pt.x - inter.offset.x)), y: Math.max(HEADER_H, Math.min(canvasH - v.height, pt.y - inter.offset.y)) }
-              : v
-          )
+          vs.map((v) => v.id === inter.id
+            ? { ...v, x: Math.max(0, Math.min(canvasW - v.width, pt.x - inter.offset.x)), y: Math.max(HEADER_H, Math.min(canvasH - v.height, pt.y - inter.offset.y)) }
+            : v)
+        );
+      } else if (inter.mode === "dragging" && inter.type === "dataset") {
+        inter.moved = true;
+        setDatasets((ds) =>
+          ds.map((d) => d.id === inter.id
+            ? { ...d, x: Math.max(0, Math.min(canvasW - d.width, pt.x - inter.offset.x)), y: Math.max(HEADER_H, Math.min(canvasH - d.height, pt.y - inter.offset.y)) }
+            : d)
+        );
+      } else if (inter.mode === "dragging" && inter.type === "job") {
+        inter.moved = true;
+        setJobs((js) =>
+          js.map((j) => j.id === inter.id
+            ? { ...j, x: Math.max(0, Math.min(canvasW - j.width, pt.x - inter.offset.x)), y: Math.max(HEADER_H, Math.min(canvasH - j.height, pt.y - inter.offset.y)) }
+            : j)
+        );
+      } else if (inter.mode === "dragging" && inter.type === "funder") {
+        inter.moved = true;
+        setFunders((fs) =>
+          fs.map((f) => f.id === inter.id
+            ? { ...f, x: Math.max(0, Math.min(canvasW - f.width, pt.x - inter.offset.x)), y: Math.max(HEADER_H, Math.min(canvasH - f.height, pt.y - inter.offset.y)) }
+            : f)
         );
       } else if (inter.mode === "resizing") {
         inter.moved = true;
@@ -432,10 +572,16 @@ export default function App() {
         };
         if (rtype === "system") {
           setSystems((ss) => ss.map((s) => s.id !== id ? s : { ...s, ...applyResize(origRect, 60, 30) }));
+        } else if (rtype === "dataset") {
+          setDatasets((ds) => ds.map((d) => d.id !== id ? d : { ...d, ...applyResize(origRect, 60, 30) }));
+        } else if (rtype === "job") {
+          setJobs((js) => js.map((j) => j.id !== id ? j : { ...j, ...applyResize(origRect, 60, 30) }));
+        } else if (rtype === "funder") {
+          setFunders((fs) => fs.map((f) => f.id !== id ? f : { ...f, ...applyResize(origRect, 80, 60) }));
         } else {
           setVendors((vs) => vs.map((v) => v.id !== id ? v : { ...v, ...applyResize(origRect, 80, 60) }));
         }
-      } else if (inter.mode === "connecting") {
+      } else if (inter.mode === "connecting" || inter.mode === "lineage-connecting") {
         inter.currentPt = pt;
         setInterRender((r) => r + 1);
       } else if (inter.mode === "col-resize") {
@@ -450,6 +596,18 @@ export default function App() {
           nw[ci + 1] = Math.round(nR);
           setColWidths(nw);
         }
+      } else if (inter.mode === "lineage-col-resize") {
+        inter.moved = true;
+        const dx = pt.x - inter.startX;
+        const ci = inter.ci;
+        const nL = inter.origWidths[ci] + dx;
+        const nR = inter.origWidths[ci + 1] - dx;
+        if (nL >= MIN_COL_W && nR >= MIN_COL_W) {
+          const nw = [...inter.origWidths];
+          nw[ci] = Math.round(nL);
+          nw[ci + 1] = Math.round(nR);
+          setLineageColWidths(nw);
+        }
       }
     },
     [svgCoords, canvasW, canvasH]
@@ -463,30 +621,28 @@ export default function App() {
       if (inter.mode === "connecting") {
         const pt = svgCoords(e);
         const tgt = systems.find(
-          (s) =>
-            s.id !== inter.sourceId &&
-            pt.x >= s.x &&
-            pt.x <= s.x + s.width &&
-            pt.y >= s.y &&
-            pt.y <= s.y + s.height
+          (s) => s.id !== inter.sourceId && pt.x >= s.x && pt.x <= s.x + s.width && pt.y >= s.y && pt.y <= s.y + s.height
         );
         if (tgt) {
           saveSnapshot(inter.snapshot);
-          const c = {
-            id: uid(),
-            sourceId: inter.sourceId,
-            targetId: tgt.id,
-            bidirectional: false,
-            dataStandardized: true,
-            managementType: "vendor",
-            status: "in_use",
-            label: "",
-            vendorName: "",
-            description: "",
-            attributes: {},
-          };
+          const c = { id: uid(), sourceId: inter.sourceId, targetId: tgt.id, bidirectional: false, dataStandardized: true, managementType: "vendor", status: "in_use", label: "", vendorName: "", description: "", attributes: {} };
           setConnections((p) => [...p, c]);
           setSel({ type: "connection", id: c.id });
+        }
+      } else if (inter.mode === "lineage-connecting") {
+        const pt = svgCoords(e);
+        const allNodes = [
+          ...datasets.map((d) => ({ ...d, nodeType: "dataset" })),
+          ...jobs.map((j) => ({ ...j, nodeType: "job" })),
+        ];
+        const tgt = allNodes.find(
+          (n) => n.id !== inter.sourceId && pt.x >= n.x && pt.x <= n.x + n.width && pt.y >= n.y && pt.y <= n.y + n.height
+        );
+        if (tgt) {
+          saveSnapshot(inter.snapshot);
+          const c = { id: uid(), sourceId: inter.sourceId, targetId: tgt.id, description: "" };
+          setLineageConnections((p) => [...p, c]);
+          setSel({ type: "lineage_connection", id: c.id });
         }
       } else if (inter.moved && inter.snapshot) {
         saveSnapshot(inter.snapshot);
@@ -494,7 +650,7 @@ export default function App() {
       interRef.current = { mode: "idle" };
       setInterRender((r) => r + 1);
     },
-    [svgCoords, systems, saveSnapshot]
+    [svgCoords, systems, datasets, jobs, saveSnapshot]
   );
 
   useEffect(() => {
@@ -514,7 +670,7 @@ export default function App() {
 
   // ── Export/Import handlers ──
   const doExport = () => {
-    const data = buildExport({ enrichedSystems, vendors, connections, agencyName, docVersion, docDate, paperSize, colWidths });
+    const data = buildExport({ enrichedSystems, vendors, connections, datasets, jobs, funders, lineageConnections, agencyName, docVersion, docDate, paperSize, colWidths, lineageColWidths });
     const json = JSON.stringify(data, null, 2);
     downloadFile(json, (agencyName || "transit_stack").replace(/\s+/g, "_") + ".json", "application/json");
   };
@@ -547,9 +703,14 @@ export default function App() {
     setDocDate(state.docDate);
     setPaperSize(state.paperSize);
     setColWidths(state.colWidths);
+    setLineageColWidths(state.lineageColWidths);
     setVendors(state.vendors);
     setSystems(state.systems);
     setConnections(state.connections);
+    setDatasets(state.datasets || []);
+    setJobs(state.jobs || []);
+    setFunders(state.funders || []);
+    setLineageConnections(state.lineageConnections || []);
     setSel(null);
     historyRef.current = [];
     futureRef.current = [];
@@ -593,7 +754,7 @@ export default function App() {
     setGStatus("saving");
     setGError("");
     try {
-      const data = buildExport({ enrichedSystems, vendors, connections, agencyName, docVersion, docDate, paperSize, colWidths });
+      const data = buildExport({ enrichedSystems, vendors, connections, datasets, jobs, funders, lineageConnections, agencyName, docVersion, docDate, paperSize, colWidths, lineageColWidths });
       await writeCell(gToken, id, "A1", JSON.stringify(data));
       setGStatus("idle");
     } catch (e) {
@@ -620,19 +781,16 @@ export default function App() {
     }
   };
 
+  const switchView = (view) => {
+    setSel(null);
+    setActiveView(view);
+  };
+
   // ── Render ──
   if (!loaded) return <div className="p-8 text-gray-400 text-sm">Loading…</div>;
 
   const inter = interRef.current;
   const withSnapshot = (setter) => (val) => { saveSnapshot(); setter(val); };
-
-  // Derived connection annotation dimensions (font-size-aware)
-  const labelFontPx  = FONT_SIZE.connectionLabel  * PT_TO_PX;
-  const labelBoxH    = labelFontPx * CONN_LABEL_STYLE.lineHeight;
-  const labelCharW   = labelFontPx * CONN_LABEL_STYLE.charWidthRatio;
-  const vendorFontPx = FONT_SIZE.connectionVendor * PT_TO_PX;
-  const vendorBoxH   = vendorFontPx * CONN_VENDOR_STYLE.lineHeight;
-  const vendorCharW  = vendorFontPx * CONN_VENDOR_STYLE.charWidthRatio;
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
@@ -664,8 +822,23 @@ export default function App() {
           onChange={(e) => setDocDate(e.target.value)}
         />
         <div className="w-px h-5 bg-gray-300 mx-1" />
-        <button onClick={addVendor} className={btnPrimary}>+ Vendor</button>
-        <button onClick={addSystem} className={btnPrimary}>+ System</button>
+        <div className="flex border border-gray-300 rounded overflow-hidden text-xs">
+          <button onClick={() => switchView("systems")} className={`px-3 py-1.5 font-medium ${activeView === "systems" ? "bg-gray-800 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>Systems</button>
+          <button onClick={() => switchView("lineage")} className={`px-3 py-1.5 font-medium ${activeView === "lineage" ? "bg-gray-800 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>Lineage</button>
+        </div>
+        {activeView === "systems" ? (
+          <>
+            <button onClick={addVendor} className={btnPrimary}>+ Vendor</button>
+            <button onClick={addSystem} className={btnPrimary}>+ System</button>
+          </>
+        ) : (
+          <>
+            <button onClick={addFunder} className={btnPrimary}>+ Funder</button>
+            <button onClick={addDataset} className={btnPrimary}>+ Dataset</button>
+            <button onClick={addJob} className={btnPrimary}>+ Job</button>
+            <button onClick={autoLayoutLineage} className={btnSecondary}>Auto-layout</button>
+          </>
+        )}
         {sel && (
           <button onClick={deleteSelected} className="px-3 py-1.5 bg-red-50 text-red-600 text-xs font-medium rounded hover:bg-red-100 border border-red-200">
             Delete
@@ -746,20 +919,41 @@ export default function App() {
           </label>
           <span className="text-gray-400">|</span>
           <span className="text-gray-500 font-medium">Column widths:</span>
-          {CATEGORIES.map((cat, i) => (
-            <label key={cat.id} htmlFor={`field-col-width-${cat.id}`} className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-sm" style={{ background: cat.hdr }} />
-              <span className="text-gray-500">{cat.label.split(" ")[0]}:</span>
-              <input
-                id={`field-col-width-${cat.id}`}
-                type="number"
-                className="border border-gray-300 rounded px-1 py-0.5 w-14 text-xs"
-                value={colWidths[i]}
-                onChange={(e) => adjustColWidth(i, +e.target.value || MIN_COL_W)}
-              />
-            </label>
-          ))}
-          <span className="text-gray-400 ml-1">= {colWidths.reduce((a, b) => a + b, 0)}px</span>
+          {activeView === "systems" ? (
+            <>
+              {CATEGORIES.map((cat, i) => (
+                <label key={cat.id} htmlFor={`field-col-width-${cat.id}`} className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-sm" style={{ background: cat.hdr }} />
+                  <span className="text-gray-500">{cat.label.split(" ")[0]}:</span>
+                  <input
+                    id={`field-col-width-${cat.id}`}
+                    type="number"
+                    className="border border-gray-300 rounded px-1 py-0.5 w-14 text-xs"
+                    value={colWidths[i]}
+                    onChange={(e) => adjustColWidth(i, +e.target.value || MIN_COL_W)}
+                  />
+                </label>
+              ))}
+              <span className="text-gray-400 ml-1">= {colWidths.reduce((a, b) => a + b, 0)}px</span>
+            </>
+          ) : (
+            <>
+              {LINEAGE_COLUMNS.map((col, i) => (
+                <label key={col.id} htmlFor={`field-lcol-width-${col.id}`} className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-sm" style={{ background: col.hdr }} />
+                  <span className="text-gray-500">{col.name.split(" ")[0]}:</span>
+                  <input
+                    id={`field-lcol-width-${col.id}`}
+                    type="number"
+                    className="border border-gray-300 rounded px-1 py-0.5 w-14 text-xs"
+                    value={lineageColWidths[i]}
+                    onChange={(e) => adjustLineageColWidth(i, +e.target.value || MIN_COL_W)}
+                  />
+                </label>
+              ))}
+              <span className="text-gray-400 ml-1">= {lineageColWidths.reduce((a, b) => a + b, 0)}px</span>
+            </>
+          )}
         </div>
       )}
 
@@ -779,114 +973,7 @@ export default function App() {
           >
             <rect x={0} y={0} width={canvasW} height={canvasH} fill={CANVAS_BG} />
 
-            {/* Category columns */}
-            {CATEGORIES.map((cat, i) => {
-              const x0 = colBounds[i];
-              const w = colWidths[i];
-              return (
-                <g key={cat.id}>
-                  <rect x={x0} y={HEADER_H} width={w} height={canvasH - HEADER_H} fill={cat.bg} />
-                  <rect x={x0} y={0} width={w} height={HEADER_H} fill={cat.hdr} />
-                  {(() => {
-                    const fontPx = FONT_SIZE.categoryHeader * PT_TO_PX;
-                    const lineH = fontPx * 1.1;
-                    const lines = wrapText(cat.label.toUpperCase(), w - 8, fontPx);
-                    const startY = HEADER_H / 2 - (lines.length - 1) * lineH / 2;
-                    return (
-                      <text x={x0 + w / 2} textAnchor="middle" dominantBaseline="central" fontSize={fontPx} fontWeight="700" fill="#fff" letterSpacing="0.4">
-                        {lines.map((line, li) => (
-                          <tspan key={li} x={x0 + w / 2} y={startY + li * lineH}>{line}</tspan>
-                        ))}
-                      </text>
-                    );
-                  })()}
-                  {i < CATEGORIES.length - 1 && (
-                    <rect data-role="col-resize" data-ci={i} x={x0 + w - 4} y={0} width={8} height={canvasH} fill="transparent" style={{ cursor: "col-resize" }} />
-                  )}
-                </g>
-              );
-            })}
-
-            {colBounds.slice(1, -1).map((x, i) => (
-              <line key={i} x1={x} y1={HEADER_H} x2={x} y2={canvasH} stroke="#00000010" strokeWidth={1} />
-            ))}
-
-            {/* Vendors */}
-            {vendors.map((v) => {
-              const isSel = sel?.type === "vendor" && sel.id === v.id;
-              return (
-                <g key={v.id}>
-                  <rect data-role="vendor" data-id={v.id} x={v.x} y={v.y} width={v.width} height={v.height} rx={VENDOR_STYLE.rx} fill={VENDOR_STYLE.fill} stroke={isSel ? VENDOR_STYLE.strokeSelected : VENDOR_STYLE.stroke} strokeWidth={isSel ? VENDOR_STYLE.strokeWidthSelected : VENDOR_STYLE.strokeWidth} style={{ cursor: "move" }} />
-                  <text x={v.x + VENDOR_STYLE.labelPaddingX} y={v.y + FONT_SIZE.vendorLabel * PT_TO_PX + VENDOR_STYLE.labelPaddingTop} fontSize={FONT_SIZE.vendorLabel * PT_TO_PX} fontWeight="600" fill="#555" style={{ pointerEvents: "none" }}>{v.name}</text>
-                  {isSel &&
-                    ["tl", "tr", "bl", "br"].map((corner) => {
-                      const hx = corner.includes("l") ? v.x : v.x + v.width;
-                      const hy = corner.includes("t") ? v.y : v.y + v.height;
-                      return (
-                        <rect key={corner} data-role="resize" data-type="vendor" data-id={v.id} data-corner={corner} x={hx - 5} y={hy - 5} width={10} height={10} rx={2} fill="white" stroke="#333" strokeWidth={1.5} style={{ cursor: corner === "tl" || corner === "br" ? "nwse-resize" : "nesw-resize" }} />
-                      );
-                    })}
-                </g>
-              );
-            })}
-
-            {/* Systems */}
-            {enrichedSystems.map((s) => {
-              const st = STATUS[s.status] || STATUS.in_use;
-              const isSel = sel?.type === "system" && sel.id === s.id;
-              const isHov = hoveredSys === s.id;
-              const hasDesc = s.description && s.description.trim().length > 0;
-
-              const bStyle = s.agencyManaged ? SYS_BORDER.agency : !s._vendorId ? SYS_BORDER.unspecified : SYS_BORDER.vendor;
-              let bCol = isSel ? "#111" : bStyle.stroke;
-              let bW = isSel ? 3 : bStyle.strokeWidth;
-
-              return (
-                <g key={s.id} onMouseEnter={() => setHoveredSys(s.id)} onMouseLeave={() => setHoveredSys(null)}>
-                  <rect data-role="system" data-id={s.id} x={s.x} y={s.y} width={s.width} height={s.height} rx={SYS_RX} fill={st.fill} stroke={bCol} strokeWidth={bW} style={{ cursor: "move" }} />
-                  {(() => {
-                    const nameFontPx = FONT_SIZE.systemName * PT_TO_PX;
-                    const descFontPx = FONT_SIZE.systemDesc * PT_TO_PX;
-                    const descLineH  = descFontPx * 1.2;
-                    const gap        = 3;
-                    const descLines  = hasDesc ? wrapText(s.description, s.width - 16, descFontPx) : [];
-                    const descBlockH = descLines.length > 0 ? gap + descLines.length * descLineH : 0;
-                    const blockH     = nameFontPx + descBlockH;
-                    const blockTopY  = s.y + s.height / 2 - blockH / 2;
-                    const nameCY     = blockTopY + nameFontPx / 2;
-                    const descTopY   = blockTopY + nameFontPx + gap + descLineH / 2;
-                    return (
-                      <>
-                        <text x={s.x + s.width / 2} y={nameCY} textAnchor="middle" dominantBaseline="central" fontSize={nameFontPx} fontWeight="700" fill="#1a1a1a" style={{ pointerEvents: "none" }}>
-                          {s.name.length > 20 ? s.name.slice(0, 19) + "…" : s.name}
-                        </text>
-                        {descLines.length > 0 && (
-                          <text x={s.x + s.width / 2} textAnchor="middle" dominantBaseline="central" fontSize={descFontPx} fill="#555" style={{ pointerEvents: "none" }}>
-                            {descLines.map((line, li) => (
-                              <tspan key={li} x={s.x + s.width / 2} y={descTopY + li * descLineH}>{line}</tspan>
-                            ))}
-                          </text>
-                        )}
-                      </>
-                    );
-                  })()}
-                  {(isHov || isSel) &&
-                    portPositions(s).map((p) => (
-                      <circle key={p.side} data-role="port" data-id={s.id} cx={p.x} cy={p.y} r={5} fill="white" stroke={PORT_COLOR} strokeWidth={2} style={{ cursor: "crosshair" }} />
-                    ))}
-                  {isSel &&
-                    ["tl", "tr", "bl", "br"].map((corner) => {
-                      const hx = corner.includes("l") ? s.x : s.x + s.width;
-                      const hy = corner.includes("t") ? s.y : s.y + s.height;
-                      return (
-                        <rect key={corner} data-role="resize" data-type="system" data-id={s.id} data-corner={corner} x={hx - 5} y={hy - 5} width={10} height={10} rx={2} fill="white" stroke="#333" strokeWidth={1.5} style={{ cursor: corner === "tl" || corner === "br" ? "nwse-resize" : "nesw-resize" }} />
-                      );
-                    })}
-                </g>
-              );
-            })}
-
-            {/* Arrow markers */}
+            {/* Arrow markers (shared) */}
             <defs>
               {Object.entries(STATUS).map(([k, st]) => (
                 <marker key={"a-" + k} id={"a-" + k} viewBox="0 0 10 8" refX="10" refY="4" markerWidth="8" markerHeight="6" orient="auto">
@@ -898,77 +985,42 @@ export default function App() {
                   <path d="M10,0 L0,4 L10,8 Z" fill={st.connColor} />
                 </marker>
               ))}
+              <marker id="lineage-arrow" viewBox="0 0 10 8" refX="10" refY="4" markerWidth="7" markerHeight="5" orient="auto">
+                <path d="M0,0 L10,4 L0,8 Z" fill={LINEAGE_CONN_STYLE.stroke} />
+              </marker>
+              <marker id="lineage-arrow-sel" viewBox="0 0 10 8" refX="10" refY="4" markerWidth="7" markerHeight="5" orient="auto">
+                <path d="M0,0 L10,4 L0,8 Z" fill={LINEAGE_CONN_STYLE.strokeSelected} />
+              </marker>
             </defs>
 
-            {/* Connections */}
-            {connections.map((c) => {
-              const src = enrichedSystems.find((s) => s.id === c.sourceId);
-              const tgt = enrichedSystems.find((s) => s.id === c.targetId);
-              if (!src || !tgt) return null;
-
-              const st = STATUS[c.status] || STATUS.in_use;
-              const mgmt = MGMT[c.managementType] || MGMT.vendor;
-              const thick = c.dataStandardized ? CONN_THICKNESS.standard : CONN_THICKNESS.nonStandard;
-              const isSel = sel?.type === "connection" && sel.id === c.id;
-
-              const srcC = { x: src.x + src.width / 2, y: src.y + src.height / 2 };
-              const tgtC = { x: tgt.x + tgt.width / 2, y: tgt.y + tgt.height / 2 };
-              const p1 = edgePt(src, tgtC.x, tgtC.y);
-              const p2 = edgePt(tgt, srcC.x, srcC.y);
-
-              // Offset parallel connections
-              const pk = [c.sourceId, c.targetId].sort().join("-");
-              const pi = connections.filter((cc) => [cc.sourceId, cc.targetId].sort().join("-") === pk).indexOf(c);
-              const pDx = -(tgtC.y - srcC.y), pDy = tgtC.x - srcC.x;
-              const pL = Math.sqrt(pDx * pDx + pDy * pDy) || 1;
-              const off = (pi - 0.5) * 16;
-              const oX = (pDx / pL) * off, oY = (pDy / pL) * off;
-
-              const mx = (p1.x + p2.x) / 2 + oX;
-              const my = (p1.y + p2.y) / 2 + oY;
-              const d = `M${p1.x},${p1.y} Q${mx},${my} ${p2.x},${p2.y}`;
-              const qx = (p1.x + 2 * mx + p2.x) / 4;
-              const qy = (p1.y + 2 * my + p2.y) / 4;
-              const q25x = (9 * p1.x + 6 * mx + p2.x) / 16;
-              const q25y = (9 * p1.y + 6 * my + p2.y) / 16;
-
-              return (
-                <g key={c.id}>
-                  <path d={d} fill="none" stroke="transparent" strokeWidth={12} data-role="connection" data-id={c.id} style={{ cursor: "pointer" }} />
-                  <path d={d} fill="none" stroke={isSel ? "#111" : st.connColor} strokeWidth={thick} strokeDasharray={mgmt.dash} opacity={isSel ? 1 : 0.75} markerEnd={`url(#a-${c.status})`} markerStart={c.bidirectional ? `url(#ar-${c.status})` : undefined} style={{ pointerEvents: "none" }} />
-                  {c.label && (() => {
-                    const bw = c.label.length * labelCharW + CONN_LABEL_STYLE.paddingH * 2;
-                    return (
-                      <g style={{ pointerEvents: "none" }}>
-                        <rect x={qx - bw / 2} y={qy - labelBoxH / 2} width={bw} height={labelBoxH} rx={CONN_LABEL_STYLE.rx} fill="white" stroke={st.connColor} strokeWidth={CONN_LABEL_STYLE.strokeWidth} opacity={CONN_LABEL_STYLE.opacity} />
-                        <text x={qx} y={qy} textAnchor="middle" dominantBaseline="central" fontSize={labelFontPx} fontWeight={CONN_LABEL_STYLE.fontWeight} fill={st.connColor}>{c.label}</text>
-                      </g>
-                    );
-                  })()}
-                  {c.vendorName && (() => {
-                    const name = c.vendorName.length > CONN_VENDOR_STYLE.maxChars ? c.vendorName.slice(0, CONN_VENDOR_STYLE.maxChars - 1) + "…" : c.vendorName;
-                    const vw = ("via " + name).length * vendorCharW + CONN_VENDOR_STYLE.paddingH * 2;
-                    return (
-                      <g style={{ pointerEvents: "none" }}>
-                        <rect x={q25x - vw / 2} y={q25y - vendorBoxH / 2} width={vw} height={vendorBoxH} rx={CONN_VENDOR_STYLE.rx} fill="white" stroke={st.connColor} strokeWidth={CONN_VENDOR_STYLE.strokeWidth} strokeDasharray={CONN_VENDOR_STYLE.strokeDash} opacity={CONN_VENDOR_STYLE.opacity} />
-                        <text x={q25x} y={q25y} textAnchor="middle" dominantBaseline="central" fontSize={vendorFontPx} fill={CONN_VENDOR_STYLE.fill} fontStyle={CONN_VENDOR_STYLE.fontStyle}>via {name}</text>
-                      </g>
-                    );
-                  })()}
-                </g>
-              );
-            })}
-
-            {/* Rubber band while connecting */}
-            {inter.mode === "connecting" &&
-              (() => {
-                const src = systems.find((s) => s.id === inter.sourceId);
-                if (!src) return null;
-                const p1 = edgePt(src, inter.currentPt.x, inter.currentPt.y);
-                return (
-                  <line x1={p1.x} y1={p1.y} x2={inter.currentPt.x} y2={inter.currentPt.y} stroke={PORT_COLOR} strokeWidth={2} strokeDasharray="6,3" opacity={0.7} style={{ pointerEvents: "none" }} />
-                );
-              })()}
+            {activeView === "systems" ? (
+              <SystemsCanvas
+                canvasH={canvasH}
+                colBounds={colBounds}
+                colWidths={colWidths}
+                enrichedSystems={enrichedSystems}
+                vendors={vendors}
+                connections={connections}
+                sel={sel}
+                hoveredSys={hoveredSys}
+                setHoveredSys={setHoveredSys}
+                inter={inter}
+              />
+            ) : (
+              <LineageCanvas
+                canvasH={canvasH}
+                lineageColBounds={lineageColBounds}
+                lineageColWidths={lineageColWidths}
+                datasets={datasets}
+                jobs={jobs}
+                funders={funders}
+                lineageConnections={lineageConnections}
+                sel={sel}
+                hoveredSys={hoveredSys}
+                setHoveredSys={setHoveredSys}
+                inter={inter}
+              />
+            )}
 
             <Legend canvasW={canvasW} canvasH={canvasH} />
 
@@ -987,9 +1039,17 @@ export default function App() {
             systems={enrichedSystems}
             vendors={vendors}
             connections={connections}
+            datasets={datasets}
+            jobs={jobs}
+            funders={funders}
+            lineageConnections={lineageConnections}
             setSystems={withSnapshot(setSystems)}
             setVendors={withSnapshot(setVendors)}
             setConnections={withSnapshot(setConnections)}
+            setDatasets={withSnapshot(setDatasets)}
+            setJobs={withSnapshot(setJobs)}
+            setFunders={withSnapshot(setFunders)}
+            setLineageConnections={withSnapshot(setLineageConnections)}
             onDeselect={() => setSel(null)}
           />
         </div>

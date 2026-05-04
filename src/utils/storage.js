@@ -1,28 +1,42 @@
 /**
  * Persistence layer using browser localStorage.
  *
- * This replaces the `window.storage` API available in Claude's artifact
- * runtime. The interface is intentionally simple: load() returns the full
- * app state or null, save() writes it. All serialization is JSON.
- *
- * localStorage has a ~5-10 MB limit depending on browser. A transit stack
- * with 50 systems, 20 vendors, and 40 connections serializes to roughly
- * 30-50 KB, so this is not a practical constraint.
- *
- * Data is keyed by STORAGE_KEY. Changing this key effectively resets the
- * app for all users, so do so only on breaking schema changes.
+ * Data is keyed by STORAGE_KEY. On first load after the v3→v4 upgrade,
+ * any existing v3 data is migrated and re-saved under the v4 key.
  */
 
-const STORAGE_KEY = "transit-stack-v3";
+const STORAGE_KEY = "transit-stack-v4";
+const LEGACY_KEY  = "transit-stack-v3";
+
+function migrateV3(v3) {
+  return {
+    ...v3,
+    datasets: [],
+    jobs: [],
+    funders: [],
+    lineageConnections: [],
+    lineageColWidths: null, // populated on first load by defaultLineageColWidths
+    activeView: "systems",
+  };
+}
 
 /**
  * Load saved state from localStorage.
- * @returns {object | null} The parsed state, or null if nothing is saved.
+ * @returns {object | null}
  */
 export function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (raw) return JSON.parse(raw);
+
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy) {
+      const migrated = migrateV3(JSON.parse(legacy));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      return migrated;
+    }
+
+    return null;
   } catch (err) {
     console.error("Failed to load state from localStorage:", err);
     return null;
@@ -31,7 +45,7 @@ export function load() {
 
 /**
  * Save state to localStorage.
- * @param {object} data - The full app state to persist.
+ * @param {object} data
  */
 export function save(data) {
   try {
@@ -42,7 +56,7 @@ export function save(data) {
 }
 
 /**
- * Clear saved state. Used by "Clear All Data" action.
+ * Clear saved state.
  */
 export function clear() {
   try {
